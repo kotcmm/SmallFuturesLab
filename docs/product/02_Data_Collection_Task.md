@@ -1,0 +1,318 @@
+# 品种数据采集任务说明
+
+文件：`docs/product/02_Data_Collection_Task.md`
+
+---
+
+## 1. 文档目的
+
+本文档定义第一批候选品种的数据采集任务。
+
+它用于指导人工或本地 AI 编码助手采集 `docs/product/01_Candidate_Product_Batch1.md` 中列出的品种数据，并填写到 `templates/product_filter_template.csv` 的副本中。
+
+本文档不输出品种筛选结论。
+
+本文档只定义：
+
+```text
+采集哪些字段；
+哪些字段来自外部数据；
+哪些字段由公式计算；
+哪些字段由人工分级；
+采集完成后如何验收。
+```
+
+---
+
+## 2. 输入文件
+
+采集任务输入：
+
+```text
+docs/05_Product_Filter.md
+docs/product/01_Candidate_Product_Batch1.md
+templates/product_filter_template.csv
+```
+
+输出文件建议另存为：
+
+```text
+data/product_filter/product_filter_batch1.csv
+```
+
+如果 `data/product_filter/` 目录不存在，可以在执行采集任务时创建。
+
+---
+
+## 3. 采集范围
+
+第一批采集范围以 `docs/product/01_Candidate_Product_Batch1.md` 为准。
+
+包括三类：
+
+```text
+优先采集品种；
+谨慎观察品种；
+排除对照品种。
+```
+
+不允许临时加入新一批品种。
+
+如果发现需要新增品种，先修改候选品种文档，再执行采集。
+
+---
+
+## 4. 字段分组
+
+模板字段分为四类。
+
+### 4.1 外部采集字段
+
+这些字段必须从交易所、期货公司、行情软件或其他明确来源获得：
+
+```text
+Exchange
+ProductName
+ProductCode
+ContractCode
+Price
+Multiplier
+TickSize
+MarginRate
+RoundTripFeePerLot
+TypicalAtr
+LiquidityLevel
+BookContinuityLevel
+RolloverClarity
+DataDate
+DataSource
+```
+
+这些字段不得凭空猜测。
+
+---
+
+### 4.2 初始假设字段
+
+这些字段允许先使用统一假设，但必须明确记录：
+
+```text
+SlippageTicks
+StopDistance
+```
+
+第一轮默认：
+
+```text
+优先采集品种：SlippageTicks = 2
+谨慎观察品种：SlippageTicks = 2 或 3
+排除对照品种：SlippageTicks = 2 到 5
+```
+
+StopDistance 至少生成五类：
+
+```text
+3 tick
+5 tick
+10 tick
+0.5 ATR
+1.0 ATR
+```
+
+---
+
+### 4.3 公式计算字段
+
+这些字段由公式计算，不应人工手填：
+
+```text
+TickValue
+MarginPerLot
+AtrMoneyPerLot
+StopRiskMoney
+SlippageMoney
+CostMoney
+TotalRiskMoney
+RiskRate10k
+RiskRate20k
+CostRatio
+MarginRate10k
+MarginRate20k
+```
+
+公式以 `docs/05_Product_Filter.md` 和 `docs/04_Trade_Permission_Pipeline.md` 为准。
+
+---
+
+### 4.4 结论字段
+
+这些字段必须基于测算结果填写：
+
+```text
+Result10k
+Result20k
+Reasons
+```
+
+Result 只能使用：
+
+```text
+Allowed
+Caution
+Rejected
+```
+
+Reasons 必须写清楚原因，不能只写“通过”或“不适合”。
+
+---
+
+## 5. 每个品种的行数要求
+
+每个品种至少生成 5 行测算记录：
+
+```text
+3 tick 止损；
+5 tick 止损；
+10 tick 止损；
+0.5 ATR 止损；
+1.0 ATR 止损。
+```
+
+同一行同时填写：
+
+```text
+RiskRate10k
+RiskRate20k
+Result10k
+Result20k
+```
+
+也就是说，每个品种至少 5 行，不需要为 10,000 元和 20,000 元账户拆成两套行。
+
+---
+
+## 6. 采集顺序
+
+按以下顺序执行：
+
+```text
+1. 复制 templates/product_filter_template.csv；
+2. 保存为 data/product_filter/product_filter_batch1.csv；
+3. 按候选品种清单逐个填写外部采集字段；
+4. 为每个品种生成 5 个 StopDistance 场景；
+5. 计算所有公式字段；
+6. 使用交易许可逻辑得出 Result10k 和 Result20k；
+7. 填写 Reasons；
+8. 检查 DataDate 和 DataSource；
+9. 汇总候选白名单、谨慎观察列表和排除列表。
+```
+
+---
+
+## 7. 数据来源记录要求
+
+每条记录必须有 `DataDate` 和 `DataSource`。
+
+DataSource 应写明来源类型，例如：
+
+```text
+交易所官网合约文本；
+交易所保证金或手续费公告；
+期货公司交易软件；
+行情软件；
+人工统计；
+第三方资料临时参考。
+```
+
+如果使用第三方资料，Reasons 中必须说明该记录需要后续复核。
+
+---
+
+## 8. 人工分级口径
+
+LiquidityLevel、BookContinuityLevel、RolloverClarity 先允许人工分级。
+
+只允许以下值：
+
+```text
+Good
+Medium
+Poor
+Unknown
+```
+
+含义：
+
+```text
+Good    = 良好；
+Medium  = 一般；
+Poor    = 较差；
+Unknown = 暂无数据。
+```
+
+如果任一字段为 `Poor` 或 `Unknown`，该品种不能进入优先候选白名单。
+
+---
+
+## 9. 验收检查
+
+采集完成后，必须检查：
+
+```text
+所有必填字段非空；
+所有数值字段可解析为数字；
+Result10k 和 Result20k 只包含 Allowed / Caution / Rejected；
+每条记录都有 DataDate；
+每条记录都有 DataSource；
+每个品种至少 5 条记录；
+Reasons 非空；
+没有未经说明的数据来源；
+没有把 Unknown 当作 Allowed 的核心依据。
+```
+
+---
+
+## 10. 当前不做什么
+
+本任务不做：
+
+```text
+不做行情判断；
+不做策略信号；
+不做收益回测；
+不做参数优化；
+不做实盘建议；
+不新增品种；
+不修改风险许可公式；
+不修改品种筛选规则。
+```
+
+---
+
+## 11. 后续输出
+
+采集完成后，应形成：
+
+```text
+data/product_filter/product_filter_batch1.csv
+reports/product_filter_batch1_summary.md
+```
+
+其中 summary 应包含：
+
+```text
+优先候选品种；
+谨慎观察品种；
+排除品种；
+需要复核的数据；
+主要排除原因统计；
+10,000 元账户和 20,000 元账户的差异。
+```
+
+---
+
+## 12. 当前结论
+
+本任务的目标不是证明某个品种能赚钱。
+
+目标是把每个品种都放进同一张风险测算表，让后续判断基于数据，而不是主观印象。
