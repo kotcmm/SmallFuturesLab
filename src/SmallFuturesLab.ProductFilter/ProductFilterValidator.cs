@@ -39,6 +39,9 @@ public class ProductFilterValidator
         if (row.StopDistance <= 0)
             errors.Add(new ProductFilterValidationError { RowNumber = rowNumber, FieldName = "StopDistance", Reason = "StopDistance 必须大于 0" });
 
+        if (double.IsNaN(row.AccountEquity) || double.IsInfinity(row.AccountEquity) || row.AccountEquity <= 0)
+            errors.Add(new ProductFilterValidationError { RowNumber = rowNumber, FieldName = "AccountEquity", Reason = "AccountEquity 必须大于 0" });
+
         if (string.IsNullOrWhiteSpace(row.DataDate))
             errors.Add(new ProductFilterValidationError { RowNumber = rowNumber, FieldName = "DataDate", Reason = "DataDate 不能为空" });
 

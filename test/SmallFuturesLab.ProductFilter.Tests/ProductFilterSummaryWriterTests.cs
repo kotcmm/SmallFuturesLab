@@ -3,28 +3,34 @@ namespace SmallFuturesLab.ProductFilter.Tests;
 public class ProductFilterSummaryWriterTests
 {
     /// <summary>
-    /// Summary 能统计 Allowed / Caution / Rejected 数量。
+    /// Summary 能按 AccountEquity 分组统计 Allowed / Caution / Rejected 数量。
     /// </summary>
     [Fact]
-    public void WriteSummary_CountsResultsCorrectly()
+    public void WriteSummary_CountsResultsByAccountEquity()
     {
         var results = new List<ProductFilterCalculationResult>
         {
-            CreateResult("A", ProductFilterResultStatus.Allowed, ProductFilterResultStatus.Allowed),
-            CreateResult("B", ProductFilterResultStatus.Caution, ProductFilterResultStatus.Allowed),
-            CreateResult("C", ProductFilterResultStatus.Rejected, ProductFilterResultStatus.Caution),
+            CreateResult("A", 10000, ProductFilterResultStatus.Allowed),
+            CreateResult("A", 20000, ProductFilterResultStatus.Allowed),
+            CreateResult("B", 10000, ProductFilterResultStatus.Caution),
+            CreateResult("B", 20000, ProductFilterResultStatus.Allowed),
+            CreateResult("C", 10000, ProductFilterResultStatus.Rejected),
+            CreateResult("C", 20000, ProductFilterResultStatus.Caution),
         };
 
         var writer = new ProductFilterSummaryWriter();
         var summary = writer.GenerateSummary(results);
 
-        Assert.Equal(3, summary.TotalRecords);
-        Assert.Equal(1, summary.AllowedCount10k);
-        Assert.Equal(1, summary.CautionCount10k);
-        Assert.Equal(1, summary.RejectedCount10k);
-        Assert.Equal(2, summary.AllowedCount20k);
-        Assert.Equal(1, summary.CautionCount20k);
-        Assert.Equal(0, summary.RejectedCount20k);
+        Assert.Equal(6, summary.TotalRecords);
+        Assert.Equal(3, summary.UniqueProducts);
+
+        Assert.Equal(1, summary.ByAccountEquity[10000].AllowedCount);
+        Assert.Equal(1, summary.ByAccountEquity[10000].CautionCount);
+        Assert.Equal(1, summary.ByAccountEquity[10000].RejectedCount);
+
+        Assert.Equal(2, summary.ByAccountEquity[20000].AllowedCount);
+        Assert.Equal(1, summary.ByAccountEquity[20000].CautionCount);
+        Assert.Equal(0, summary.ByAccountEquity[20000].RejectedCount);
     }
 
     /// <summary>
@@ -35,8 +41,8 @@ public class ProductFilterSummaryWriterTests
     {
         var results = new List<ProductFilterCalculationResult>
         {
-            CreateResult("A", ProductFilterResultStatus.Allowed, ProductFilterResultStatus.Allowed, LiquidityLevel.Unknown),
-            CreateResult("B", ProductFilterResultStatus.Caution, ProductFilterResultStatus.Caution, LiquidityLevel.Unknown),
+            CreateResult("A", 10000, ProductFilterResultStatus.Allowed, LiquidityLevel.Unknown),
+            CreateResult("B", 20000, ProductFilterResultStatus.Caution, LiquidityLevel.Unknown),
         };
 
         var writer = new ProductFilterSummaryWriter();
@@ -53,15 +59,16 @@ public class ProductFilterSummaryWriterTests
     {
         var results = new List<ProductFilterCalculationResult>
         {
-            CreateResult("A", ProductFilterResultStatus.Allowed, ProductFilterResultStatus.Allowed),
+            CreateResult("A", 10000, ProductFilterResultStatus.Allowed),
         };
 
         var writer = new ProductFilterSummaryWriter();
         var markdown = writer.WriteMarkdown(results);
 
         Assert.Contains("总记录数", markdown);
-        Assert.Contains("10,000 元账户", markdown);
-        Assert.Contains("20,000 元账户", markdown);
+        Assert.Contains("进入后续周期研究", markdown);
+        Assert.Contains("谨慎观察", markdown);
+        Assert.Contains("当前账户规模排除", markdown);
     }
 
     /// <summary>
@@ -72,7 +79,7 @@ public class ProductFilterSummaryWriterTests
     {
         var results = new List<ProductFilterCalculationResult>
         {
-            CreateResult("A", ProductFilterResultStatus.Allowed, ProductFilterResultStatus.Allowed),
+            CreateResult("A", 10000, ProductFilterResultStatus.Allowed),
         };
 
         var writer = new ProductFilterSummaryWriter();
@@ -84,18 +91,36 @@ public class ProductFilterSummaryWriterTests
         Assert.DoesNotContain("可以做空", markdown);
     }
 
+    /// <summary>
+    /// Markdown 中不包含生成时间，不依赖当前时间。
+    /// </summary>
+    [Fact]
+    public void WriteSummary_DoesNotContainGenerationTime()
+    {
+        var results = new List<ProductFilterCalculationResult>
+        {
+            CreateResult("A", 10000, ProductFilterResultStatus.Allowed),
+        };
+
+        var writer = new ProductFilterSummaryWriter();
+        var markdown = writer.WriteMarkdown(results);
+
+        Assert.DoesNotContain("生成时间", markdown);
+        Assert.DoesNotContain("UTC", markdown);
+    }
+
     private static ProductFilterCalculationResult CreateResult(
         string name,
-        ProductFilterResultStatus result10k,
-        ProductFilterResultStatus result20k,
+        double accountEquity,
+        ProductFilterResultStatus result,
         LiquidityLevel liquidity = LiquidityLevel.Good)
     {
         var row = new ProductFilterRow
         {
             Exchange = "Test",
             ProductName = name,
-            ProductCode = "T",
-            ContractCode = "T2501",
+            ProductCode = name,
+            ContractCode = $"{name}2501",
             Price = 2500,
             Multiplier = 10,
             TickSize = 1,
@@ -104,12 +129,13 @@ public class ProductFilterSummaryWriterTests
             SlippageTicks = 2,
             TypicalAtr = 20,
             StopDistance = 12,
+            AccountEquity = accountEquity,
             LiquidityLevel = liquidity,
             BookContinuityLevel = BookContinuityLevel.Good,
             RolloverClarity = RolloverClarity.Good,
             DataDate = "2024-01-01",
             DataSource = "Test",
         };
-        return new ProductFilterCalculationResult(row, result10k, result20k, "测试原因");
+        return new ProductFilterCalculationResult(row, result, "测试原因");
     }
 }

@@ -22,6 +22,7 @@ public class ProductFilterValidatorTests
             SlippageTicks = 2,
             TypicalAtr = 20,
             StopDistance = 12,
+            AccountEquity = 10000,
             LiquidityLevel = LiquidityLevel.Good,
             BookContinuityLevel = BookContinuityLevel.Good,
             RolloverClarity = RolloverClarity.Good,
@@ -100,6 +101,22 @@ public class ProductFilterValidatorTests
     }
 
     /// <summary>
+    /// AccountEquity 小于等于 0 时校验失败。
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_AccountEquityNotPositive_ReturnsFailure(double equity)
+    {
+        var row = CreateValidRow() with { AccountEquity = equity };
+        var validator = new ProductFilterValidator();
+        var result = validator.Validate(row, 1);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.FieldName == "AccountEquity");
+    }
+
+    /// <summary>
     /// 枚举字段不是 Good / Medium / Poor / Unknown 时校验失败。
     /// </summary>
     [Fact]
@@ -150,6 +167,7 @@ public class ProductFilterValidatorTests
         SlippageTicks = 2,
         TypicalAtr = 20,
         StopDistance = 12,
+        AccountEquity = 10000,
         LiquidityLevel = LiquidityLevel.Good,
         BookContinuityLevel = BookContinuityLevel.Good,
         RolloverClarity = RolloverClarity.Good,

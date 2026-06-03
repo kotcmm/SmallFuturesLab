@@ -15,9 +15,10 @@ public class ProductFilterCsvReaderTests
         var result = reader.Read(FixturePath("valid_product_filter.csv"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.Rows.Count);
+        Assert.Equal(6, result.Rows.Count);
         Assert.Equal("TestProductA", result.Rows[0].ProductName);
         Assert.Equal(2500, result.Rows[0].Price);
+        Assert.Equal(10000, result.Rows[0].AccountEquity);
     }
 
     /// <summary>

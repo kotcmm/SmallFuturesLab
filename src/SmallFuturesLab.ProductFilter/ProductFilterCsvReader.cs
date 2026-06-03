@@ -3,27 +3,6 @@ using System.Globalization;
 namespace SmallFuturesLab.ProductFilter;
 
 /// <summary>
-/// CSV 读取结果。
-/// </summary>
-public record CsvReadResult
-{
-    /// <summary>
-    /// 是否成功。
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// 读取到的数据行。
-    /// </summary>
-    public IReadOnlyList<ProductFilterRow> Rows { get; init; } = Array.Empty<ProductFilterRow>();
-
-    /// <summary>
-    /// 错误列表。
-    /// </summary>
-    public IReadOnlyList<ProductFilterValidationError> Errors { get; init; } = Array.Empty<ProductFilterValidationError>();
-}
-
-/// <summary>
 /// 品种筛选 CSV 读取器。
 /// </summary>
 public class ProductFilterCsvReader
@@ -196,6 +175,7 @@ public class ProductFilterCsvReader
                 SlippageTicks = GetInt(values, headerIndex, "SlippageTicks"),
                 TypicalAtr = GetDouble(values, headerIndex, "TypicalAtr"),
                 StopDistance = GetDouble(values, headerIndex, "StopDistance"),
+                AccountEquity = GetDouble(values, headerIndex, "AccountEquity"),
                 LiquidityLevel = GetEnum<LiquidityLevel>(values, headerIndex, "LiquidityLevel"),
                 BookContinuityLevel = GetEnum<BookContinuityLevel>(values, headerIndex, "BookContinuityLevel"),
                 RolloverClarity = GetEnum<RolloverClarity>(values, headerIndex, "RolloverClarity"),
@@ -208,13 +188,25 @@ public class ProductFilterCsvReader
             errors.Add(new ProductFilterValidationError
             {
                 RowNumber = rowNumber,
-                FieldName = "数值字段",
-                Reason = $"解析失败: {ex.Message}",
+                FieldName = ExtractFieldNameFromException(ex),
+                Reason = ex.Message,
             });
             return null;
         }
 
         return row;
+    }
+
+    private static string ExtractFieldNameFromException(FormatException ex)
+    {
+        var message = ex.Message;
+        // 异常消息格式为 "{FieldName} 不可解析为..." 或 "{FieldName} 不是有效的枚举值..."
+        var spaceIndex = message.IndexOf(' ');
+        if (spaceIndex > 0)
+        {
+            return message.Substring(0, spaceIndex);
+        }
+        return "字段";
     }
 
     private static string GetString(string[] values, Dictionary<string, int> index, string field)

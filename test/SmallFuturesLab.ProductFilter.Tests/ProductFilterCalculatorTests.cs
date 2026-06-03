@@ -22,18 +22,18 @@ public class ProductFilterCalculatorTests
     }
 
     /// <summary>
-    /// 同一行可以同时生成 RiskRate10k 和 RiskRate20k。
+    /// 当前账户规模下的 RiskRate 和 MarginRateOfEquity 被正确计算。
     /// </summary>
     [Fact]
-    public void Calculate_SingleRow_ComputesBothRiskRates()
+    public void Calculate_SingleRow_ComputesRiskRateAndMarginRate()
     {
         var row = CreateValidRow();
         var calculator = new ProductFilterCalculator();
         var result = calculator.Calculate(row);
 
         var expectedTotalRisk = 146.0;
-        Assert.Equal(expectedTotalRisk / 10000.0, result.Row.RiskRate10k, 4);
-        Assert.Equal(expectedTotalRisk / 20000.0, result.Row.RiskRate20k, 4);
+        Assert.Equal(expectedTotalRisk / 10000.0, result.Row.RiskRate, 4);
+        Assert.Equal(result.Row.MarginPerLot / 10000.0, result.Row.MarginRateOfEquity, 4);
     }
 
     /// <summary>
@@ -48,12 +48,11 @@ public class ProductFilterCalculatorTests
         var calculator = new ProductFilterCalculator();
         var result = calculator.Calculate(row);
 
-        Assert.NotEqual(ProductFilterResultStatus.Allowed, result.Result10k);
-        Assert.NotEqual(ProductFilterResultStatus.Allowed, result.Result20k);
+        Assert.NotEqual(ProductFilterResultStatus.Allowed, result.Result);
     }
 
     /// <summary>
-    /// Result10k / Result20k 只会输出 Allowed / Caution / Rejected。
+    /// Result 只会输出 Allowed / Caution / Rejected。
     /// </summary>
     [Fact]
     public void Calculate_ResultIsAlwaysAllowedCautionOrRejected()
@@ -63,38 +62,58 @@ public class ProductFilterCalculatorTests
         var result = calculator.Calculate(row);
 
         Assert.True(
-            result.Result10k == ProductFilterResultStatus.Allowed
-            || result.Result10k == ProductFilterResultStatus.Caution
-            || result.Result10k == ProductFilterResultStatus.Rejected);
-        Assert.True(
-            result.Result20k == ProductFilterResultStatus.Allowed
-            || result.Result20k == ProductFilterResultStatus.Caution
-            || result.Result20k == ProductFilterResultStatus.Rejected);
+            result.Result == ProductFilterResultStatus.Allowed
+            || result.Result == ProductFilterResultStatus.Caution
+            || result.Result == ProductFilterResultStatus.Rejected);
     }
 
     /// <summary>
-    /// 高保证金品种对 10k 账户可能 Rejected，对 20k 账户可能 Caution。
+    /// 高保证金品种在较小 AccountEquity 下可能 Rejected，在较大 AccountEquity 下可能 Caution。
     /// </summary>
     [Fact]
-    public void Calculate_HighMarginProduct_DifferentResultsFor10kAnd20k()
+    public void Calculate_HighMarginProduct_DifferentResultsForDifferentEquity()
     {
-        var row = CreateValidRow() with
+        var row10k = CreateValidRow() with
         {
             Price = 10000,
             Multiplier = 20,
             MarginRate = 0.20,
             StopDistance = 100,
+            AccountEquity = 10000,
         };
+        var row20k = CreateValidRow() with
+        {
+            Price = 10000,
+            Multiplier = 20,
+            MarginRate = 0.20,
+            StopDistance = 100,
+            AccountEquity = 20000,
+        };
+        var calculator = new ProductFilterCalculator();
+        var result10k = calculator.Calculate(row10k);
+        var result20k = calculator.Calculate(row20k);
+
+        Assert.True(
+            result10k.Result == ProductFilterResultStatus.Rejected || result10k.Result == ProductFilterResultStatus.Caution,
+            $"Result for 10k should be Rejected or Caution, but was {result10k.Result}");
+    }
+
+    /// <summary>
+    /// AccountEquity = 30000 时不需要改模型也能计算。
+    /// </summary>
+    [Fact]
+    public void Calculate_AccountEquity30000_WorksWithoutModelChange()
+    {
+        var row = CreateValidRow() with { AccountEquity = 30000 };
         var calculator = new ProductFilterCalculator();
         var result = calculator.Calculate(row);
 
-        // 20k 账户保证金占比 = 10000*20*0.2/20000 = 20% <= 40%，Allowed
-        // 10k 账户保证金占比 = 10000*20*0.2/10000 = 40% <= 40%，Allowed
-        // 但 StopRisk = 100*20 = 2000, TotalRisk > 2000, RiskRate10k > 20% -> Rejected
-        // RiskRate20k > 10% -> Caution or Rejected
+        Assert.Equal(146.0 / 30000.0, result.Row.RiskRate, 4);
+        Assert.Equal(result.Row.MarginPerLot / 30000.0, result.Row.MarginRateOfEquity, 4);
         Assert.True(
-            result.Result10k == ProductFilterResultStatus.Rejected || result.Result10k == ProductFilterResultStatus.Caution,
-            $"Result10k should be Rejected or Caution, but was {result.Result10k}");
+            result.Result == ProductFilterResultStatus.Allowed
+            || result.Result == ProductFilterResultStatus.Caution
+            || result.Result == ProductFilterResultStatus.Rejected);
     }
 
     /// <summary>
@@ -124,6 +143,7 @@ public class ProductFilterCalculatorTests
         SlippageTicks = 2,
         TypicalAtr = 20,
         StopDistance = 12,
+        AccountEquity = 10000,
         LiquidityLevel = LiquidityLevel.Good,
         BookContinuityLevel = BookContinuityLevel.Good,
         RolloverClarity = RolloverClarity.Good,

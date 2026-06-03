@@ -2,6 +2,7 @@ namespace SmallFuturesLab.ProductFilter;
 
 /// <summary>
 /// 品种筛选 CSV 中的一行数据，包含原始采集字段和公式计算字段。
+/// 账户规模（AccountEquity）是测算维度，不是固定字段名，支持任意账户规模。
 /// </summary>
 public record ProductFilterRow
 {
@@ -62,20 +63,17 @@ public record ProductFilterRow
     /// <summary>含成本 1R，TotalRiskMoney = StopRiskMoney + CostMoney。</summary>
     public double TotalRiskMoney { get; init; }
 
-    /// <summary>对 10,000 元账户风险占比，RiskRate10k = TotalRiskMoney / 10000。</summary>
-    public double RiskRate10k { get; init; }
+    /// <summary>当前记录使用的账户权益（E）。</summary>
+    public double AccountEquity { get; init; }
 
-    /// <summary>对 20,000 元账户风险占比，RiskRate20k = TotalRiskMoney / 20000。</summary>
-    public double RiskRate20k { get; init; }
+    /// <summary>当前账户规模下的风险占比，RiskRate = TotalRiskMoney / AccountEquity。</summary>
+    public double RiskRate { get; init; }
+
+    /// <summary>当前账户规模下的保证金占比，MarginRateOfEquity = MarginPerLot / AccountEquity。</summary>
+    public double MarginRateOfEquity { get; init; }
 
     /// <summary>成本占止损风险比例，CostRatio = CostMoney / StopRiskMoney。</summary>
     public double CostRatio { get; init; }
-
-    /// <summary>对 10,000 元账户保证金占比，MarginRate10k = MarginPerLot / 10000。</summary>
-    public double MarginRate10k { get; init; }
-
-    /// <summary>对 20,000 元账户保证金占比，MarginRate20k = MarginPerLot / 20000。</summary>
-    public double MarginRate20k { get; init; }
 
     /// <summary>流动性等级。</summary>
     public LiquidityLevel LiquidityLevel { get; init; }
@@ -86,11 +84,8 @@ public record ProductFilterRow
     /// <summary>换月清晰度。</summary>
     public RolloverClarity RolloverClarity { get; init; }
 
-    /// <summary>10,000 元账户结论。</summary>
-    public ProductFilterResultStatus Result10k { get; init; }
-
-    /// <summary>20,000 元账户结论。</summary>
-    public ProductFilterResultStatus Result20k { get; init; }
+    /// <summary>当前账户规模下的结论。</summary>
+    public ProductFilterResultStatus Result { get; init; }
 
     /// <summary>结论原因。</summary>
     public string Reasons { get; init; } = string.Empty;

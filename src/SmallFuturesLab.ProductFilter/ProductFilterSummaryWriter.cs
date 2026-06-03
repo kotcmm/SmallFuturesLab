@@ -14,27 +14,34 @@ public class ProductFilterSummaryWriter
     /// <returns>汇总统计。</returns>
     public ProductFilterSummary GenerateSummary(IReadOnlyList<ProductFilterCalculationResult> results)
     {
-        var allowed10k = results.Where(r => r.Result10k == ProductFilterResultStatus.Allowed).ToList();
-        var caution10k = results.Where(r => r.Result10k == ProductFilterResultStatus.Caution).ToList();
-        var rejected10k = results.Where(r => r.Result10k == ProductFilterResultStatus.Rejected).ToList();
-
-        var allowed20k = results.Where(r => r.Result20k == ProductFilterResultStatus.Allowed).ToList();
-        var caution20k = results.Where(r => r.Result20k == ProductFilterResultStatus.Caution).ToList();
-        var rejected20k = results.Where(r => r.Result20k == ProductFilterResultStatus.Rejected).ToList();
-
         var uniqueProducts = results.Select(r => r.Row.ProductCode).Distinct().Count();
 
-        var cautionList = results
-            .Where(r => r.Result10k == ProductFilterResultStatus.Caution || r.Result20k == ProductFilterResultStatus.Caution)
-            .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})")
-            .Distinct()
-            .ToList();
-
-        var excludedList = results
-            .Where(r => r.Result10k == ProductFilterResultStatus.Rejected || r.Result20k == ProductFilterResultStatus.Rejected)
-            .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})")
-            .Distinct()
-            .ToList();
+        var byEquity = results
+            .GroupBy(r => r.Row.AccountEquity)
+            .OrderBy(g => g.Key)
+            .ToDictionary(
+                g => g.Key,
+                g => new AccountEquitySummary
+                {
+                    AllowedCount = g.Count(r => r.Result == ProductFilterResultStatus.Allowed),
+                    CautionCount = g.Count(r => r.Result == ProductFilterResultStatus.Caution),
+                    RejectedCount = g.Count(r => r.Result == ProductFilterResultStatus.Rejected),
+                    Candidates = g
+                        .Where(r => r.Result == ProductFilterResultStatus.Allowed)
+                        .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})")
+                        .Distinct()
+                        .ToList(),
+                    CautionList = g
+                        .Where(r => r.Result == ProductFilterResultStatus.Caution)
+                        .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})")
+                        .Distinct()
+                        .ToList(),
+                    ExcludedList = g
+                        .Where(r => r.Result == ProductFilterResultStatus.Rejected)
+                        .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})")
+                        .Distinct()
+                        .ToList(),
+                });
 
         var needsReview = results
             .Where(r =>
@@ -43,39 +50,26 @@ public class ProductFilterSummaryWriter
                 || r.Row.RolloverClarity == RolloverClarity.Unknown
                 || string.IsNullOrWhiteSpace(r.Row.DataSource)
                 || r.Row.DataSource.Contains("第三方", StringComparison.Ordinal))
-            .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode}) - {r.Row.DataSource}")
+            .Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode}) - AccountEquity={r.Row.AccountEquity} - {r.Row.DataSource}")
             .Distinct()
             .ToList();
 
         var rejectionReasons = new Dictionary<string, int>();
-        foreach (var r in results.Where(r => r.Result10k == ProductFilterResultStatus.Rejected || r.Result20k == ProductFilterResultStatus.Rejected))
+        foreach (var r in results.Where(r => r.Result == ProductFilterResultStatus.Rejected))
         {
-            if (r.Row.RiskRate10k > 0.02)
-                Increment(rejectionReasons, "10k 账户单笔风险超过 2%");
-            if (r.Row.RiskRate20k > 0.02)
-                Increment(rejectionReasons, "20k 账户单笔风险超过 2%");
+            if (r.Row.RiskRate > 0.02)
+                Increment(rejectionReasons, $"AccountEquity={r.Row.AccountEquity} 单笔风险超过 2%");
             if (r.Row.CostRatio > 0.30)
                 Increment(rejectionReasons, "成本占比超过 0.3R");
-            if (r.Row.MarginRate10k > 0.50)
-                Increment(rejectionReasons, "10k 账户保证金占用超过 50%");
-            if (r.Row.MarginRate20k > 0.50)
-                Increment(rejectionReasons, "20k 账户保证金占用超过 50%");
+            if (r.Row.MarginRateOfEquity > 0.50)
+                Increment(rejectionReasons, $"AccountEquity={r.Row.AccountEquity} 保证金占用超过 50%");
         }
 
         return new ProductFilterSummary
         {
             TotalRecords = results.Count,
             UniqueProducts = uniqueProducts,
-            AllowedCount10k = allowed10k.Count,
-            CautionCount10k = caution10k.Count,
-            RejectedCount10k = rejected10k.Count,
-            AllowedCount20k = allowed20k.Count,
-            CautionCount20k = caution20k.Count,
-            RejectedCount20k = rejected20k.Count,
-            Candidates10k = allowed10k.Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})").Distinct().ToList(),
-            Candidates20k = allowed20k.Select(r => $"{r.Row.ProductName} ({r.Row.ProductCode})").Distinct().ToList(),
-            CautionList = cautionList,
-            ExcludedList = excludedList,
+            ByAccountEquity = byEquity,
             NeedsReview = needsReview,
             RejectionReasonStats = rejectionReasons,
         };
@@ -93,7 +87,6 @@ public class ProductFilterSummaryWriter
 
         sb.AppendLine("# 品种筛选汇总");
         sb.AppendLine();
-        sb.AppendLine($"> 生成时间：{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine($"> 总记录数：{summary.TotalRecords}");
         sb.AppendLine($"> 涉及品种数：{summary.UniqueProducts}");
         sb.AppendLine();
@@ -102,69 +95,67 @@ public class ProductFilterSummaryWriter
         sb.AppendLine();
         sb.AppendLine("| 账户规模 | Allowed | Caution | Rejected |");
         sb.AppendLine("|---|---:|---:|---:|");
-        sb.AppendLine($"| 10,000 元 | {summary.AllowedCount10k} | {summary.CautionCount10k} | {summary.RejectedCount10k} |");
-        sb.AppendLine($"| 20,000 元 | {summary.AllowedCount20k} | {summary.CautionCount20k} | {summary.RejectedCount20k} |");
-        sb.AppendLine();
-
-        sb.AppendLine("## 10,000 元账户候选列表");
-        sb.AppendLine();
-        if (summary.Candidates10k.Count > 0)
+        foreach (var kv in summary.ByAccountEquity.OrderBy(kv => kv.Key))
         {
-            foreach (var item in summary.Candidates10k)
-            {
-                sb.AppendLine($"- {item}");
-            }
-        }
-        else
-        {
-            sb.AppendLine("_无_");
+            var equity = kv.Key;
+            var s = kv.Value;
+            sb.AppendLine($"| {equity:F0} 元 | {s.AllowedCount} | {s.CautionCount} | {s.RejectedCount} |");
         }
         sb.AppendLine();
 
-        sb.AppendLine("## 20,000 元账户候选列表");
-        sb.AppendLine();
-        if (summary.Candidates20k.Count > 0)
+        foreach (var kv in summary.ByAccountEquity.OrderBy(kv => kv.Key))
         {
-            foreach (var item in summary.Candidates20k)
-            {
-                sb.AppendLine($"- {item}");
-            }
-        }
-        else
-        {
-            sb.AppendLine("_无_");
-        }
-        sb.AppendLine();
+            var equity = kv.Key;
+            var s = kv.Value;
 
-        sb.AppendLine("## 谨慎观察列表");
-        sb.AppendLine();
-        if (summary.CautionList.Count > 0)
-        {
-            foreach (var item in summary.CautionList)
-            {
-                sb.AppendLine($"- {item}");
-            }
-        }
-        else
-        {
-            sb.AppendLine("_无_");
-        }
-        sb.AppendLine();
+            sb.AppendLine($"## {equity:F0} 元账户");
+            sb.AppendLine();
 
-        sb.AppendLine("## 排除列表");
-        sb.AppendLine();
-        if (summary.ExcludedList.Count > 0)
-        {
-            foreach (var item in summary.ExcludedList)
+            sb.AppendLine($"### 进入后续周期研究列表");
+            sb.AppendLine();
+            if (s.Candidates.Count > 0)
             {
-                sb.AppendLine($"- {item}");
+                foreach (var item in s.Candidates)
+                {
+                    sb.AppendLine($"- {item}");
+                }
             }
+            else
+            {
+                sb.AppendLine("_无_");
+            }
+            sb.AppendLine();
+
+            sb.AppendLine($"### 谨慎观察列表");
+            sb.AppendLine();
+            if (s.CautionList.Count > 0)
+            {
+                foreach (var item in s.CautionList)
+                {
+                    sb.AppendLine($"- {item}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("_无_");
+            }
+            sb.AppendLine();
+
+            sb.AppendLine($"### 当前账户规模排除列表");
+            sb.AppendLine();
+            if (s.ExcludedList.Count > 0)
+            {
+                foreach (var item in s.ExcludedList)
+                {
+                    sb.AppendLine($"- {item}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("_无_");
+            }
+            sb.AppendLine();
         }
-        else
-        {
-            sb.AppendLine("_无_");
-        }
-        sb.AppendLine();
 
         sb.AppendLine("## 需要复核的数据");
         sb.AppendLine();

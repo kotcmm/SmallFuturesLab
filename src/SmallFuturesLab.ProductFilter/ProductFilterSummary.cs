@@ -1,7 +1,7 @@
 namespace SmallFuturesLab.ProductFilter;
 
 /// <summary>
-/// 品种筛选汇总统计。
+/// 按账户规模分组的品种筛选汇总统计。
 /// </summary>
 public record ProductFilterSummary
 {
@@ -16,54 +16,10 @@ public record ProductFilterSummary
     public int UniqueProducts { get; init; }
 
     /// <summary>
-    /// 10,000 元账户 Allowed 数量。
+    /// 按账户规模分组的统计。
+    /// Key 为账户权益数值，Value 为该账户规模下的统计。
     /// </summary>
-    public int AllowedCount10k { get; init; }
-
-    /// <summary>
-    /// 10,000 元账户 Caution 数量。
-    /// </summary>
-    public int CautionCount10k { get; init; }
-
-    /// <summary>
-    /// 10,000 元账户 Rejected 数量。
-    /// </summary>
-    public int RejectedCount10k { get; init; }
-
-    /// <summary>
-    /// 20,000 元账户 Allowed 数量。
-    /// </summary>
-    public int AllowedCount20k { get; init; }
-
-    /// <summary>
-    /// 20,000 元账户 Caution 数量。
-    /// </summary>
-    public int CautionCount20k { get; init; }
-
-    /// <summary>
-    /// 20,000 元账户 Rejected 数量。
-    /// </summary>
-    public int RejectedCount20k { get; init; }
-
-    /// <summary>
-    /// 10,000 元账户候选列表（Allowed）。
-    /// </summary>
-    public IReadOnlyList<string> Candidates10k { get; init; } = Array.Empty<string>();
-
-    /// <summary>
-    /// 20,000 元账户候选列表（Allowed）。
-    /// </summary>
-    public IReadOnlyList<string> Candidates20k { get; init; } = Array.Empty<string>();
-
-    /// <summary>
-    /// 谨慎观察列表（Caution）。
-    /// </summary>
-    public IReadOnlyList<string> CautionList { get; init; } = Array.Empty<string>();
-
-    /// <summary>
-    /// 排除列表（Rejected）。
-    /// </summary>
-    public IReadOnlyList<string> ExcludedList { get; init; } = Array.Empty<string>();
+    public IReadOnlyDictionary<double, AccountEquitySummary> ByAccountEquity { get; init; } = new Dictionary<double, AccountEquitySummary>();
 
     /// <summary>
     /// 需要复核的数据。
@@ -74,4 +30,40 @@ public record ProductFilterSummary
     /// 主要排除原因统计。
     /// </summary>
     public IReadOnlyDictionary<string, int> RejectionReasonStats { get; init; } = new Dictionary<string, int>();
+}
+
+/// <summary>
+/// 单个账户规模下的统计。
+/// </summary>
+public record AccountEquitySummary
+{
+    /// <summary>
+    /// Allowed 数量。
+    /// </summary>
+    public int AllowedCount { get; init; }
+
+    /// <summary>
+    /// Caution 数量。
+    /// </summary>
+    public int CautionCount { get; init; }
+
+    /// <summary>
+    /// Rejected 数量。
+    /// </summary>
+    public int RejectedCount { get; init; }
+
+    /// <summary>
+    /// 进入后续周期研究列表（Allowed）。
+    /// </summary>
+    public IReadOnlyList<string> Candidates { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// 谨慎观察列表（Caution）。
+    /// </summary>
+    public IReadOnlyList<string> CautionList { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// 当前账户规模排除列表（Rejected）。
+    /// </summary>
+    public IReadOnlyList<string> ExcludedList { get; init; } = Array.Empty<string>();
 }
