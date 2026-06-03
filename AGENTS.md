@@ -1,16 +1,8 @@
 # AGENTS.md
 
-本文件约束所有后续参与 SmallFuturesLab 的代码实现者和 AI 编程助手。
+## 1. Read first
 
-`AGENTS.md` 只定义工程协作规则，不承载业务逻辑。
-
-业务规则、计算公式、阈值、许可条件和阶段边界，必须以 `README.md` 与 `docs/` 下的文档为准。
-
----
-
-## 1. 必须先读的文档
-
-实现代码前，必须先阅读：
+Before coding, read:
 
 ```text
 README.md
@@ -21,53 +13,34 @@ docs/03_Operation_Sketch.md
 docs/04_Trade_Permission_Pipeline.md
 ```
 
-如果文档之间存在冲突，先停止实现，并在文档层面解决冲突。
+If documents conflict, stop and resolve the documents first.
 
 ---
 
-## 2. AGENTS.md 的边界
-
-本文件只约束：
+## 2. Source of truth
 
 ```text
-工程结构；
-实现顺序；
-测试要求；
-命名风格；
-文档同步流程；
-禁止越界实现。
+docs/ = business rules
+AGENTS.md = engineering rules
 ```
 
-本文件不定义：
+Do not define formulas, thresholds, trading rules, or risk rules in this file.
+
+---
+
+## 3. Current scope
+
+Implement only the module described in:
 
 ```text
-交易公式；
-风险阈值；
-交易许可条件；
-账户约束；
-品种筛选规则；
-周期筛选规则；
-策略逻辑；
-行情逻辑。
+docs/04_Trade_Permission_Pipeline.md
 ```
 
-业务内容如需修改，必须修改对应 `docs/` 文档，而不是修改本文件。
+Do not add strategy, market data, indicators, backtesting, execution, live trading, optimization, or signal generation.
 
 ---
 
-## 3. 当前实现范围
-
-当前阶段只允许实现 `docs/04_Trade_Permission_Pipeline.md` 中定义的交易许可模块。
-
-实现者不得自行扩展到行情、策略、指标、回测、实盘或自动交易。
-
-如果需要新增实现范围，必须先更新项目文档，再修改代码。
-
----
-
-## 4. 推荐工程栈
-
-当前默认使用：
+## 4. Stack
 
 ```text
 C#
@@ -75,13 +48,13 @@ C#
 xUnit
 ```
 
-如果未来改用其他语言或测试框架，必须先修改项目文档，再开始实现。
+Changing the stack requires a documentation update first.
 
 ---
 
-## 5. 推荐目录结构
+## 5. Project structure
 
-当前阶段推荐结构：
+Use:
 
 ```text
 src/
@@ -91,37 +64,30 @@ test/
   SmallFuturesLab.Risk.Tests/
 ```
 
-具体类型、字段、公式和判断逻辑以 `docs/04_Trade_Permission_Pipeline.md` 为准。
-
-不要提前创建策略、行情、回测、执行、实盘接口等目录。
+Do not create extra top-level modules before they are documented.
 
 ---
 
-## 6. 实现原则
+## 6. Implementation style
 
-代码应保持：
+Prefer:
 
 ```text
-小类；
-纯计算优先；
-不可变输入优先；
-无外部副作用；
-业务语义清晰；
-测试先行；
-文档同步。
+small classes
+pure calculation
+immutable inputs
+clear business names
+tests first
+no external side effects
 ```
 
-交易许可模块应是纯计算模块。
-
-同样输入必须得到同样输出。
+The risk module must not read market data, access networks, write databases, call brokers, or depend on current time.
 
 ---
 
-## 7. 命名要求
+## 7. Naming
 
-命名必须表达业务语义。
-
-避免使用模糊命名，例如：
+Avoid vague names:
 
 ```text
 Manager
@@ -135,113 +101,56 @@ Alpha
 Predictor
 ```
 
-如果确实需要使用上述词汇，必须先在项目文档中说明原因。
+Use names from the relevant docs when possible.
 
 ---
 
-## 8. 测试要求
+## 8. Tests
 
-实现必须测试先行。
-
-测试用例应覆盖：
+Tests must cover:
 
 ```text
-文档中的标准示例；
-边界输入；
-异常输入；
-拒绝场景；
-谨慎场景；
-允许场景；
-多个原因同时触发的场景。
+standard examples
+boundary inputs
+invalid inputs
+allowed result
+caution result
+rejected result
+multiple reasons in one result
 ```
 
-具体业务场景和预期结果以 `docs/04_Trade_Permission_Pipeline.md` 为准。
-
-测试名称应描述业务语义，不要只写技术细节。
+Test names should describe business behavior.
 
 ---
 
-## 9. 输入校验要求
+## 9. Numeric precision
 
-必须处理异常输入。
+`double` is acceptable for the current stage.
 
-无效输入不得产生看似正常的业务结果。
-
-异常输入的处理方式应通过测试固定。
-
-具体哪些输入属于无效输入，以对应业务文档为准。
+Use tolerances in floating-point assertions.
 
 ---
 
-## 10. 数值精度要求
+## 10. Documentation flow
 
-当前阶段金额和比率可使用 `double`。
-
-测试中比较浮点数时应使用容差。
-
-除非项目文档明确要求，否则不要引入复杂金额类型。
-
----
-
-## 11. 禁止越界实现
-
-当前阶段严禁提前实现或引入：
+When code and docs conflict:
 
 ```text
-策略模块；
-行情模块；
-技术指标；
-回测引擎；
-订单模块；
-券商或期货接口；
-实盘执行；
-实时行情；
-仓位管理；
-组合管理；
-收益曲线；
-参数优化；
-信号生成。
+1. stop coding
+2. update docs
+3. update tests
+4. update implementation
 ```
 
-这些内容如果后续需要实现，必须先由项目文档明确批准。
+Do not let code change project rules silently.
 
 ---
 
-## 12. 文档同步流程
-
-如果实现过程中发现文档和代码冲突：
+## 11. Done means
 
 ```text
-1. 停止实现；
-2. 修改业务文档；
-3. 修改或补充测试；
-4. 修改实现代码。
-```
-
-不得让代码偷偷改变项目原则。
-
-所有新业务规则必须先出现在 `docs/` 文档中，再进入代码。
-
----
-
-## 13. 完成标准
-
-第一阶段代码完成标准：
-
-```text
-SmallFuturesLab.Risk 可以独立编译；
-核心交易许可流程与 docs/04 文档一致；
-单元测试覆盖主要路径和边界；
-没有策略、行情、回测、实盘相关代码；
-README 或相关文档已同步当前实现范围。
-```
-
----
-
-## 14. 最重要的协作规则
-
-```text
-AGENTS.md 管工程边界。
-docs/ 管业务逻辑。
-代码只实现 docs 已经定义清楚的内容。
+SmallFuturesLab.Risk builds
+SmallFuturesLab.Risk.Tests pass
+implementation matches docs/04
+no strategy, market data, backtest, execution, or live-trading code
 ```
