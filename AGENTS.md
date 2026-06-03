@@ -1,8 +1,8 @@
 # AGENTS.md
 
-## 1. Read first
+## 1. 先读文档
 
-Before coding, read:
+编码前先读：
 
 ```text
 README.md
@@ -13,34 +13,34 @@ docs/03_Operation_Sketch.md
 docs/04_Trade_Permission_Pipeline.md
 ```
 
-If documents conflict, stop and resolve the documents first.
+文档冲突时，先停下，先修正文档。
 
 ---
 
-## 2. Source of truth
+## 2. 规则来源
 
 ```text
-docs/ = business rules
-AGENTS.md = engineering rules
+docs/ = 业务规则
+AGENTS.md = 工程规则
 ```
 
-Do not define formulas, thresholds, trading rules, or risk rules in this file.
+不要在本文件定义公式、阈值、交易规则或风险规则。
 
 ---
 
-## 3. Current scope
+## 3. 当前范围
 
-Implement only the module described in:
+只实现：
 
 ```text
 docs/04_Trade_Permission_Pipeline.md
 ```
 
-Do not add strategy, market data, indicators, backtesting, execution, live trading, optimization, or signal generation.
+不要新增策略、行情、指标、回测、执行、实盘、优化、信号生成等模块。
 
 ---
 
-## 4. Stack
+## 4. 技术栈
 
 ```text
 C#
@@ -48,13 +48,13 @@ C#
 xUnit
 ```
 
-Changing the stack requires a documentation update first.
+更换技术栈前，先更新文档。
 
 ---
 
-## 5. Project structure
+## 5. 项目结构
 
-Use:
+使用：
 
 ```text
 src/
@@ -64,30 +64,30 @@ test/
   SmallFuturesLab.Risk.Tests/
 ```
 
-Do not create extra top-level modules before they are documented.
+未写入文档前，不要创建额外顶层模块。
 
 ---
 
-## 6. Implementation style
+## 6. 实现风格
 
-Prefer:
+优先：
 
 ```text
-small classes
-pure calculation
-immutable inputs
-clear business names
-tests first
-no external side effects
+小类
+纯计算
+不可变输入
+业务命名清晰
+测试先行
+无外部副作用
 ```
 
-The risk module must not read market data, access networks, write databases, call brokers, or depend on current time.
+风险模块不得读取行情、访问网络、写数据库、调用交易接口或依赖当前时间。
 
 ---
 
-## 7. Naming
+## 7. 命名约束
 
-Avoid vague names:
+避免模糊命名：
 
 ```text
 Manager
@@ -101,56 +101,77 @@ Alpha
 Predictor
 ```
 
-Use names from the relevant docs when possible.
+优先使用相关文档中的业务命名。
 
 ---
 
-## 8. Tests
+## 8. 生产代码注释约定
 
-Tests must cover:
+新增或修改 `src/` 下的生产代码时，遵守：
 
 ```text
-standard examples
-boundary inputs
-invalid inputs
-allowed result
-caution result
-rejected result
-multiple reasons in one result
+public 类型必须有中文 XML 注释。
+public 属性必须有中文 XML 注释。
+public 方法必须有中文 XML 注释。
+public enum 及 enum 成员必须有中文 XML 注释。
 ```
 
-Test names should describe business behavior.
+领域模型优先使用属性展开式 `record` 或 `class`，以便逐属性说明业务语义。
+
+一个 `public class` / `record` / `interface` / `enum` 使用一个独立 `.cs` 文件。
+
+文件名必须与 public 类型名一致。
+
+如果使用英文术语，应在附近给出中文解释。
 
 ---
 
-## 9. Numeric precision
+## 9. 测试要求
 
-`double` is acceptable for the current stage.
-
-Use tolerances in floating-point assertions.
-
----
-
-## 10. Documentation flow
-
-When code and docs conflict:
+测试必须覆盖：
 
 ```text
-1. stop coding
-2. update docs
-3. update tests
-4. update implementation
+标准示例
+边界输入
+无效输入
+Allowed 结果
+Caution 结果
+Rejected 结果
+单次返回多个原因
 ```
 
-Do not let code change project rules silently.
+测试名称应描述业务行为。
 
 ---
 
-## 11. Done means
+## 10. 数值精度
+
+当前阶段允许使用 `double`。
+
+浮点断言必须使用容差。
+
+---
+
+## 11. 文档同步
+
+代码和文档冲突时：
 
 ```text
-SmallFuturesLab.Risk builds
-SmallFuturesLab.Risk.Tests pass
-implementation matches docs/04
-no strategy, market data, backtest, execution, or live-trading code
+1. 停止编码
+2. 更新文档
+3. 更新测试
+4. 更新实现
+```
+
+不要让代码悄悄改变项目规则。
+
+---
+
+## 12. 完成标准
+
+```text
+SmallFuturesLab.Risk 可以编译
+SmallFuturesLab.Risk.Tests 全部通过
+实现与 docs/04 一致
+没有策略、行情、回测、执行或实盘代码
 ```
