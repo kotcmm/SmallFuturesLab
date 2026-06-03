@@ -303,7 +303,15 @@ Unknown  = 暂无数据。
 
 ## 12. 筛选表模板
 
-品种筛选表至少包含：
+品种筛选表模板位于：
+
+```text
+templates/product_filter_template.csv
+```
+
+该模板只定义字段结构，不代表实际筛选结论。
+
+模板至少包含：
 
 | 字段 | 说明 |
 |---|---|
@@ -323,6 +331,8 @@ Unknown  = 暂无数据。
 | AtrMoneyPerLot | 1 手 1 ATR 金额 |
 | StopDistance | 测算止损距离 |
 | StopRiskMoney | 止损金额 |
+| SlippageMoney | 滑点金额 |
+| CostMoney | 成本金额 |
 | TotalRiskMoney | 含成本 1R |
 | RiskRate10k | 对 10,000 元账户风险占比 |
 | RiskRate20k | 对 20,000 元账户风险占比 |
@@ -337,6 +347,16 @@ Unknown  = 暂无数据。
 | Reasons | 结论原因 |
 | DataDate | 数据日期 |
 | DataSource | 数据来源 |
+
+使用模板时必须遵守：
+
+```text
+不填入未经确认的数据；
+每条记录必须包含 DataDate；
+每条记录必须包含 DataSource；
+Result10k 和 Result20k 只能使用 Allowed / Caution / Rejected；
+Reasons 必须写明结论原因。
+```
 
 ---
 
