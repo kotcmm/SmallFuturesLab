@@ -13,7 +13,7 @@
 它只回答：
 
 ```text
-某个期货品种，在 1 万到 2 万账户下，是否有资格进入后续周期研究和候选方向研究？
+某个期货品种，在给定账户规模下，是否有资格进入后续周期研究和候选方向研究？
 ```
 
 核心原则：
@@ -45,7 +45,7 @@
 
 ## 3. 筛选结论
 
-每个品种只能输出三类结论：
+每条测算记录只能输出三类结论：
 
 ```text
 Allowed   = 允许进入后续周期研究；
@@ -58,14 +58,56 @@ Rejected  = 排除，当前账户规模不研究。
 `Allowed` 只代表：
 
 ```text
-该品种在账户颗粒度、保证金、成本和一手风险上，暂时具备继续研究资格。
+该品种在当前账户规模、账户颗粒度、保证金、成本和一手风险上，暂时具备继续研究资格。
 ```
 
 ---
 
-## 4. 必须收集的字段
+## 4. 账户规模建模
 
-每个品种必须至少收集：
+账户规模是测算维度，不是固定字段名。
+
+模板使用：
+
+```text
+AccountEquity
+```
+
+表示当前记录使用的账户权益。
+
+不要在模型或 CSV 中固化：
+
+```text
+RiskRate10k
+RiskRate20k
+MarginRate10k
+MarginRate20k
+Result10k
+Result20k
+```
+
+原因：
+
+```text
+1 万和 2 万只是当前默认测算场景；
+未来可能增加 3 万、4 万、5 万或其他账户规模；
+账户规模变化不应该导致代码模型、CSV 表头和测试大面积修改。
+```
+
+默认第一轮账户规模：
+
+```text
+10,000 元；
+20,000 元。
+```
+
+如果后续要测算 30,000 元、40,000 元、50,000 元，只增加对应 `AccountEquity` 记录行，不修改字段结构。
+
+---
+
+## 5. 必须收集的字段
+
+每条测算记录必须至少收集或生成：
 
 ```text
 交易所；
@@ -87,90 +129,91 @@ Rejected  = 排除，当前账户规模不研究。
 1 手 1 ATR 金额；
 常见止损距离；
 常见止损金额；
+账户权益；
 手续费 + 滑点占止损风险比例；
-对 10,000 元账户的风险占比；
-对 20,000 元账户的风险占比；
+当前账户规模下的风险占比；
+当前账户规模下的保证金占比；
 初步结论；
 结论原因；
 数据日期；
 数据来源。
 ```
 
-没有数据日期和数据来源的品种记录，不进入正式筛选表。
+没有数据日期和数据来源的记录，不进入正式筛选表。
 
 ---
 
-## 5. 基础计算公式
+## 6. 基础计算公式
 
-### 5.1 一跳金额
+### 6.1 一跳金额
 
 ```text
 TickValue = TickSize × Multiplier
 ```
 
-### 5.2 一手名义金额
+### 6.2 一手名义金额
 
 ```text
 NotionalPerLot = Price × Multiplier
 ```
 
-### 5.3 一手保证金估计
+### 6.3 一手保证金估计
 
 ```text
 MarginPerLot = Price × Multiplier × MarginRate
 ```
 
-### 5.4 保证金占比
+### 6.4 保证金占比
 
 ```text
-MarginRateOfEquity = MarginPerLot / Equity
+MarginRateOfEquity = MarginPerLot / AccountEquity
 ```
 
-### 5.5 1 手 1 ATR 金额
+### 6.5 1 手 1 ATR 金额
 
 ```text
 AtrMoneyPerLot = ATR × Multiplier
 ```
 
-### 5.6 常见止损金额
+### 6.6 常见止损金额
 
 ```text
 StopRiskMoney = StopDistance × Multiplier
 ```
 
-### 5.7 滑点金额
+### 6.7 滑点金额
 
 ```text
 SlippageMoney = SlippageTicks × TickSize × Multiplier
 ```
 
-### 5.8 成本金额
+### 6.8 成本金额
 
 ```text
 CostMoney = RoundTripFeePerLot + SlippageMoney
 ```
 
-### 5.9 成本占比
+### 6.9 成本占比
 
 ```text
 CostRatio = CostMoney / StopRiskMoney
 ```
 
-### 5.10 实际 1R
+### 6.10 实际 1R
 
 ```text
 TotalRiskMoney = StopRiskMoney + CostMoney
 ```
 
-### 5.11 风险占账户比例
+### 6.11 风险占账户比例
 
 ```text
-RiskRate = TotalRiskMoney / Equity
+RiskRate = TotalRiskMoney / AccountEquity
 ```
 
 ---
 
-## 6. 常见止损距离的定义
+## 7. 常见止损距离的定义
 
 品种筛选阶段不定义最终策略止损。
 
@@ -190,13 +233,13 @@ ATR 止损：1.0 ATR。
 
 ---
 
-## 7. 账户测算要求
+## 8. 账户测算要求
 
-每个品种必须分别测算：
+每个品种必须至少测算：
 
 ```text
-10,000 元账户；
-20,000 元账户。
+AccountEquity = 10000；
+AccountEquity = 20000。
 ```
 
 并分别输出：
@@ -211,17 +254,19 @@ ATR 止损：1.0 ATR。
 Allowed / Caution / Rejected。
 ```
 
-如果同一品种对 20,000 元账户允许，但对 10,000 元账户拒绝，应明确标记账户差异。
+如果同一品种在不同账户规模下结论不同，应明确标记账户差异。
+
+账户规模增加时，只增加新的 `AccountEquity` 场景，不新增字段。
 
 ---
 
-## 8. 优先研究条件
+## 9. 优先研究条件
 
-满足以下条件的品种，优先进入后续周期研究：
+满足以下条件的记录，优先进入后续周期研究：
 
 ```text
-1 手常见止损风险 <= 账户 1%；
-保证金占用 <= 账户 40%；
+1 手常见止损风险 <= 当前账户权益 1%；
+保证金占用 <= 当前账户权益 40%；
 手续费 + 滑点占止损风险 <= 0.2；
 成交活跃；
 盘口连续；
@@ -233,31 +278,31 @@ Allowed / Caution / Rejected。
 
 ---
 
-## 9. 谨慎研究条件
+## 10. 谨慎研究条件
 
 满足以下任意条件，标记为 `Caution`：
 
 ```text
-1 手常见止损风险 > 账户 1% 但 <= 账户 2%；
-保证金占用 > 账户 40% 但 <= 账户 50%；
+1 手常见止损风险 > 当前账户权益 1% 但 <= 当前账户权益 2%；
+保证金占用 > 当前账户权益 40% 但 <= 当前账户权益 50%；
 手续费 + 滑点占止损风险 > 0.2 但 <= 0.3；
 成交活跃度不稳定；
 盘口在部分时段变薄；
 换月期间流动性迁移不清晰；
-对 10,000 元账户不友好，但对 20,000 元账户可能可研究。
+对较小账户不友好，但对较大账户可能可研究。
 ```
 
 `Caution` 品种不得直接进入实盘假设，只能继续观察或模拟测算。
 
 ---
 
-## 10. 排除条件
+## 11. 排除条件
 
 满足以下任意条件，标记为 `Rejected`：
 
 ```text
-1 手常见止损风险 > 账户 2%；
-保证金占用 > 账户 50%；
+1 手常见止损风险 > 当前账户权益 2%；
+保证金占用 > 当前账户权益 50%；
 手续费 + 滑点占止损风险 > 0.3；
 一跳金额过大，导致止损颗粒度不可接受；
 成交不活跃；
@@ -269,11 +314,11 @@ Allowed / Caution / Rejected。
 容易诱导扛单、摊平或重仓。
 ```
 
-排除品种必须记录排除原因。
+排除记录必须记录排除原因。
 
 ---
 
-## 11. 盘口与流动性判断
+## 12. 盘口与流动性判断
 
 当前阶段不研究盘口高频交易，但品种筛选必须检查流动性。
 
@@ -297,11 +342,11 @@ Poor     = 较差；
 Unknown  = 暂无数据。
 ```
 
-`Poor` 或 `Unknown` 不直接等于排除，但不能进入优先研究列表。
+`Poor` 或 `Unknown` 不直接等于排除，但不能输出 `Allowed`。
 
 ---
 
-## 12. 筛选表模板
+## 13. 筛选表模板
 
 品种筛选表模板位于：
 
@@ -334,16 +379,14 @@ templates/product_filter_template.csv
 | SlippageMoney | 滑点金额 |
 | CostMoney | 成本金额 |
 | TotalRiskMoney | 含成本 1R |
-| RiskRate10k | 对 10,000 元账户风险占比 |
-| RiskRate20k | 对 20,000 元账户风险占比 |
+| AccountEquity | 当前记录使用的账户权益 |
+| RiskRate | 当前账户规模下的风险占比 |
+| MarginRateOfEquity | 当前账户规模下的保证金占比 |
 | CostRatio | 成本占止损风险比例 |
-| MarginRate10k | 对 10,000 元账户保证金占比 |
-| MarginRate20k | 对 20,000 元账户保证金占比 |
 | LiquidityLevel | 流动性等级 |
 | BookContinuityLevel | 盘口连续性等级 |
 | RolloverClarity | 换月清晰度 |
-| Result10k | 10,000 元账户结论 |
-| Result20k | 20,000 元账户结论 |
+| Result | 当前账户规模下的结论 |
 | Reasons | 结论原因 |
 | DataDate | 数据日期 |
 | DataSource | 数据来源 |
@@ -354,15 +397,16 @@ templates/product_filter_template.csv
 不填入未经确认的数据；
 每条记录必须包含 DataDate；
 每条记录必须包含 DataSource；
-Result10k 和 Result20k 只能使用 Allowed / Caution / Rejected；
+AccountEquity 必须大于 0；
+Result 只能使用 Allowed / Caution / Rejected；
 Reasons 必须写明结论原因。
 ```
 
 ---
 
-## 13. 单品种输出格式
+## 14. 单品种输出格式
 
-每个品种应输出一段结构化结论：
+每个品种应按账户规模输出结构化结论：
 
 ```text
 品种：
@@ -378,10 +422,8 @@ Reasons 必须写明结论原因。
 常见止损金额：
 手续费 + 滑点占比：
 
-10,000 元账户：Allowed / Caution / Rejected
-原因：
-
-20,000 元账户：Allowed / Caution / Rejected
+AccountEquity：
+结论：Allowed / Caution / Rejected
 原因：
 
 最终结论：
@@ -390,7 +432,7 @@ Reasons 必须写明结论原因。
 
 ---
 
-## 14. 与交易许可模块的关系
+## 15. 与交易许可模块的关系
 
 品种筛选不重新定义风险公式。
 
@@ -403,13 +445,15 @@ TradeIdea
 RiskPolicy
 ```
 
+其中 `AccountSnapshot.Equity` 来自当前记录的 `AccountEquity`。
+
 然后使用交易许可结果作为品种筛选依据。
 
 如果品种筛选文档和交易许可文档出现冲突，以 `docs/04_Trade_Permission_Pipeline.md` 为准，并先修正文档后再实现代码。
 
 ---
 
-## 15. 当前不做什么
+## 16. 当前不做什么
 
 当前品种筛选阶段不做：
 
@@ -427,24 +471,24 @@ RiskPolicy
 
 ---
 
-## 16. 通过标准
+## 17. 通过标准
 
 品种筛选阶段完成时，必须产出：
 
 ```text
-候选品种白名单；
-谨慎观察品种列表；
-排除品种列表；
-每个品种的计算依据；
-每个品种的结论原因；
+按 AccountEquity 分组的候选品种白名单；
+按 AccountEquity 分组的谨慎观察品种列表；
+按 AccountEquity 分组的排除品种列表；
+每条记录的计算依据；
+每条记录的结论原因；
 数据日期和数据来源。
 ```
 
-没有明确结论原因的品种，不允许进入后续周期研究。
+没有明确结论原因的记录，不允许进入后续周期研究。
 
 ---
 
-## 17. 当前结论
+## 18. 当前结论
 
 SmallFuturesLab 的品种筛选不是寻找“好行情品种”。
 
