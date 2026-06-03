@@ -30,7 +30,7 @@ AGENTS.md = 工程规则
 
 业务文档由用户和 ChatGPT 维护。
 
-Kimi CLI 主要负责编码实现，不主动新增、重写或修订 `docs/` 下的业务文档。
+本地 AI 编码助手主要负责编码实现，不主动新增、重写或修订 `docs/` 下的业务文档。
 
 如果编码时发现以下情况：
 
@@ -71,7 +71,7 @@ docs/04_Trade_Permission_Pipeline.md
 
 ---
 
-## 4. 本地 Kimi CLI 协作流程
+## 4. 本地 AI 编码助手协作流程
 
 默认远程仓库名：
 
@@ -95,7 +95,7 @@ git fetch origin
 用户希望尽量少手动操作
 ```
 
-Kimi CLI 应主动完成：
+本地 AI 编码助手应主动完成：
 
 ```text
 拉取
@@ -152,7 +152,7 @@ docs/ 文档
 工程规范
 ```
 
-用户最好只需要启动一次 Kimi 命令，然后把 PR 链接交给 ChatGPT review。
+用户最好只需要启动一次本地 AI 编码助手命令，然后把 PR 链接交给 ChatGPT review。
 
 ---
 
