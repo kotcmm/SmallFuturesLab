@@ -11,6 +11,10 @@ docs/01_Account_Constraints.md
 docs/02_Research_Roadmap.md
 docs/03_Operation_Sketch.md
 docs/04_Trade_Permission_Pipeline.md
+docs/05_Product_Filter.md
+docs/product/01_Candidate_Product_Batch1.md
+docs/product/02_Data_Collection_Task.md
+templates/README.md
 ```
 
 规则归属：
@@ -50,13 +54,15 @@ AGENTS.md = 工程规则
 
 ## 3. 当前实现范围
 
-当前只实现：
+当前允许实现：
 
 ```text
-docs/04_Trade_Permission_Pipeline.md
+docs/04_Trade_Permission_Pipeline.md 中定义的交易许可模块；
+docs/05_Product_Filter.md 中定义的品种筛选计算与校验；
+docs/product/02_Data_Collection_Task.md 中定义的数据文件校验、计算和汇总输出。
 ```
 
-不要新增：
+当前不允许实现：
 
 ```text
 策略
@@ -67,6 +73,9 @@ docs/04_Trade_Permission_Pipeline.md
 实盘
 优化
 信号生成
+自动采集外部数据
+联网抓取交易所数据
+根据行情生成交易建议
 ```
 
 ---
@@ -166,17 +175,19 @@ C#
 xUnit
 ```
 
-推荐结构：
+当前允许结构：
 
 ```text
 src/
   SmallFuturesLab.Risk/
+  SmallFuturesLab.ProductFilter/
 
 test/
   SmallFuturesLab.Risk.Tests/
+  SmallFuturesLab.ProductFilter.Tests/
 ```
 
-更换技术栈或新增顶层模块前，先更新文档。
+更换技术栈或新增其他顶层模块前，先更新文档。
 
 ---
 
@@ -217,7 +228,7 @@ test/
 无外部副作用
 ```
 
-风险模块不得：
+风险和品种筛选模块不得：
 
 ```text
 读取行情
@@ -225,6 +236,7 @@ test/
 写数据库
 调用交易接口
 依赖当前时间
+自动生成交易建议
 ```
 
 ---
@@ -282,6 +294,10 @@ Allowed 结果
 Caution 结果
 Rejected 结果
 单次返回多个原因
+CSV 表头校验
+必填字段校验
+公式字段计算
+汇总输出
 ```
 
 测试名称应描述业务行为。
@@ -314,7 +330,9 @@ Rejected 结果
 ```text
 SmallFuturesLab.Risk 可以编译
 SmallFuturesLab.Risk.Tests 全部通过
-实现与 docs/04 一致
+SmallFuturesLab.ProductFilter 可以编译
+SmallFuturesLab.ProductFilter.Tests 全部通过
+实现与 docs/04、docs/05、docs/product/02 一致
 没有策略、行情、回测、执行或实盘代码
 已创建 Pull Request
 ```
