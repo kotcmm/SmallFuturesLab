@@ -21,10 +21,21 @@ public class TradePermissionEvaluator
         TradeIdea trade,
         RiskPolicy policy)
     {
+        var rejections = ValidateInputs(account, instrument, trade);
+
+        if (rejections.Count > 0)
+        {
+            return new TradePermissionResult
+            {
+                Status = TradePermissionStatus.Rejected,
+                RejectedItems = rejections.AsReadOnly(),
+                Conclusion = "拒绝交易，行情再好也不做。",
+            };
+        }
+
         var metrics = ComputeMetrics(account, instrument, trade, policy);
         var passed = new List<string>();
         var warnings = new List<string>();
-        var rejections = new List<string>();
 
         // 硬性禁止条件
         if (trade.Lots != 1)
@@ -72,8 +83,7 @@ public class TradePermissionEvaluator
             rejections.Add($"今日交易次数 {account.TradeCountToday} 已达上限 {policy.MaxTradesPerDay}");
         }
 
-        // 连续亏损压力测试：以极限单笔风险上限为基准定义严重失败，
-        // 确保 RiskRate 在常规上限（1%）与极限上限（2%）之间时输出 Caution 而非 Rejected。
+        // 连续亏损压力测试严重失败
         if (metrics.LossAfter5Rate > 0.10 || metrics.LossAfter8Rate > 0.16 || metrics.LossAfter10Rate > 0.20)
         {
             rejections.Add("连续亏损压力测试严重失败");
@@ -113,16 +123,19 @@ public class TradePermissionEvaluator
                 warnings.Add($"成本占比 {metrics.CostRatio:P2} 超过推荐上限 {policy.PreferredCostRatio:P2}，处于谨慎区间");
             }
 
-            passed.Add("连续亏损压力测试通过");
-            passed.Add("每日亏损限制通过");
-            passed.Add("交易次数限制通过");
-            passed.Add("硬性条件通过");
-
-            // 连续亏损压力接近上限（以常规单笔风险上限为基准）
-            if (metrics.LossAfter5Rate > 0.05 || metrics.LossAfter8Rate > 0.08 || metrics.LossAfter10Rate > 0.10)
+            // 连续亏损压力测试：只有全部满足通过标准时才输出通过
+            if (metrics.LossAfter5Rate <= 0.05 && metrics.LossAfter8Rate <= 0.08 && metrics.LossAfter10Rate <= 0.10)
+            {
+                passed.Add("连续亏损压力测试通过");
+            }
+            else if (metrics.LossAfter5Rate <= 0.10 && metrics.LossAfter8Rate <= 0.16 && metrics.LossAfter10Rate <= 0.20)
             {
                 warnings.Add("连续亏损压力接近上限");
             }
+
+            passed.Add("每日亏损限制通过");
+            passed.Add("交易次数限制通过");
+            passed.Add("硬性条件通过");
 
             // 今日已出现亏损但未达上限
             if (account.DailyLossSoFar > 0 && metrics.ProjectedDailyLoss <= metrics.DailyLossLimitCash)
@@ -154,6 +167,48 @@ public class TradePermissionEvaluator
             RejectedItems = rejections.AsReadOnly(),
             Conclusion = conclusion,
         };
+    }
+
+    private static List<string> ValidateInputs(AccountSnapshot account, InstrumentSpec instrument, TradeIdea trade)
+    {
+        var rejections = new List<string>();
+
+        if (account.Equity <= 0)
+        {
+            rejections.Add("账户权益必须大于 0");
+        }
+
+        if (instrument.TickSize <= 0)
+        {
+            rejections.Add("最小变动价位必须大于 0");
+        }
+
+        if (instrument.Multiplier <= 0)
+        {
+            rejections.Add("合约乘数必须大于 0");
+        }
+
+        if (trade.Lots <= 0)
+        {
+            rejections.Add("手数必须大于 0");
+        }
+
+        if (trade.SlippageTicks < 0)
+        {
+            rejections.Add("滑点跳数不能为负数");
+        }
+
+        if (instrument.FeePerRoundTrip < 0)
+        {
+            rejections.Add("单手开平总手续费估计不能为负数");
+        }
+
+        if (trade.EntryPrice == trade.StopPrice)
+        {
+            rejections.Add("入场价与止损价不能相同，止损必须提供有效空间");
+        }
+
+        return rejections;
     }
 
     private static RiskMetrics ComputeMetrics(

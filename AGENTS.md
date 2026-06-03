@@ -139,7 +139,7 @@ docs/ 文档
 
 ```text
 C#
-.NET
+.NET 10 (TargetFramework: net10.0)
 xUnit
 ```
 

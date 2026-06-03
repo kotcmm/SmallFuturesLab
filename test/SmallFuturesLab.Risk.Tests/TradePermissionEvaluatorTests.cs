@@ -214,11 +214,13 @@ public class TradePermissionEvaluatorTests
     public void Evaluate_CostRatioExceedsPreferredButNotExtreme_ReturnsCaution()
     {
         var evaluator = new TradePermissionEvaluator();
-        var instrument = DefaultInstrument() with { FeePerRoundTrip = 20 };
-        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), DefaultTradeIdea(), DefaultPolicy());
+        var instrument = DefaultInstrument() with { FeePerRoundTrip = 15 };
+        var result = evaluator.Evaluate(DefaultAccount(), instrument, DefaultTradeIdea(), DefaultPolicy());
 
         Assert.Equal(TradePermissionStatus.Caution, result.Status);
         Assert.Contains(result.WarningItems, w => w.Contains("成本占比"));
+        Assert.True(result.Metrics.CostRatio > 0.20, "CostRatio 应大于 0.20");
+        Assert.True(result.Metrics.CostRatio <= 0.30, "CostRatio 应小于等于 0.30");
     }
 
     /// <summary>
@@ -240,5 +242,176 @@ public class TradePermissionEvaluatorTests
         Assert.Contains(result.RejectedItems, r => r.Contains("手数"));
         Assert.Contains(result.RejectedItems, r => r.Contains("隔夜"));
         Assert.Contains(result.RejectedItems, r => r.Contains("加仓"));
+    }
+
+    // ========== 无效输入测试 ==========
+
+    /// <summary>
+    /// 账户权益小于等于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1000)]
+    public void Evaluate_EquityNotPositive_ReturnsRejected(double equity)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var account = DefaultAccount() with { Equity = equity };
+        var result = evaluator.Evaluate(account, DefaultInstrument(), DefaultTradeIdea(), DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("权益"));
+    }
+
+    /// <summary>
+    /// 最小变动价位小于等于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Evaluate_TickSizeNotPositive_ReturnsRejected(double tickSize)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var instrument = DefaultInstrument() with { TickSize = tickSize };
+        var result = evaluator.Evaluate(DefaultAccount(), instrument, DefaultTradeIdea(), DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("最小变动价位"));
+    }
+
+    /// <summary>
+    /// 合约乘数小于等于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public void Evaluate_MultiplierNotPositive_ReturnsRejected(double multiplier)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var instrument = DefaultInstrument() with { Multiplier = multiplier };
+        var result = evaluator.Evaluate(DefaultAccount(), instrument, DefaultTradeIdea(), DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("合约乘数"));
+    }
+
+    /// <summary>
+    /// 手数小于等于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Evaluate_LotsNotPositive_ReturnsRejected(int lots)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var trade = DefaultTradeIdea() with { Lots = lots };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("手数"));
+    }
+
+    /// <summary>
+    /// 滑点跳数小于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(-5)]
+    public void Evaluate_SlippageTicksNegative_ReturnsRejected(int slippageTicks)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var trade = DefaultTradeIdea() with { SlippageTicks = slippageTicks };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("滑点"));
+    }
+
+    /// <summary>
+    /// 单手开平总手续费小于 0 时输出 Rejected。
+    /// </summary>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(-10)]
+    public void Evaluate_FeePerRoundTripNegative_ReturnsRejected(double fee)
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var instrument = DefaultInstrument() with { FeePerRoundTrip = fee };
+        var result = evaluator.Evaluate(DefaultAccount(), instrument, DefaultTradeIdea(), DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("手续费"));
+    }
+
+    /// <summary>
+    /// 入场价与止损价相同时输出 Rejected。
+    /// </summary>
+    [Fact]
+    public void Evaluate_EntryPriceEqualsStopPrice_ReturnsRejected()
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var trade = DefaultTradeIdea() with { EntryPrice = 2500, StopPrice = 2500 };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("止损"));
+    }
+
+    /// <summary>
+    /// 无明确止损时输出 Rejected。
+    /// </summary>
+    [Fact]
+    public void Evaluate_HasStopIsFalse_ReturnsRejected()
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var trade = DefaultTradeIdea() with { HasStop = false };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("止损"));
+    }
+
+    // ========== 连续亏损压力测试 ==========
+
+    /// <summary>
+    /// 连续亏损压力全部满足通过标准时，PassedItems 应包含通过描述，WarningItems 不应包含接近上限描述。
+    /// </summary>
+    [Fact]
+    public void Evaluate_ConsecutiveLossPressureAllPass_ContainsPassItemOnly()
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), DefaultTradeIdea(), DefaultPolicy());
+
+        Assert.Contains(result.PassedItems, p => p.Contains("连续亏损压力测试通过"));
+        Assert.DoesNotContain(result.WarningItems, w => w.Contains("连续亏损压力接近上限"));
+    }
+
+    /// <summary>
+    /// 连续亏损压力超过通过标准但未达严重失败时，输出 Caution，WarningItems 应包含接近上限描述，PassedItems 不应包含通过描述。
+    /// </summary>
+    [Fact]
+    public void Evaluate_ConsecutiveLossPressureNearLimit_ReturnsCautionWithoutPassItem()
+    {
+        var evaluator = new TradePermissionEvaluator();
+        // StopPrice = 2480 时 TotalRiskMoney = 226，LossAfter5Rate = 5.65% > 5%
+        var trade = DefaultTradeIdea() with { EntryPrice = 2500, StopPrice = 2480 };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Caution, result.Status);
+        Assert.Contains(result.WarningItems, w => w.Contains("连续亏损压力接近上限"));
+        Assert.DoesNotContain(result.PassedItems, p => p.Contains("连续亏损压力测试通过"));
+    }
+
+    /// <summary>
+    /// 连续亏损压力严重失败时，RejectedItems 应包含严重失败描述。
+    /// </summary>
+    [Fact]
+    public void Evaluate_ConsecutiveLossPressureExtremeFail_ContainsExtremeFailReason()
+    {
+        var evaluator = new TradePermissionEvaluator();
+        var trade = DefaultTradeIdea() with { EntryPrice = 2500, StopPrice = 2460 };
+        var result = evaluator.Evaluate(DefaultAccount(), DefaultInstrument(), trade, DefaultPolicy());
+
+        Assert.Equal(TradePermissionStatus.Rejected, result.Status);
+        Assert.Contains(result.RejectedItems, r => r.Contains("连续亏损压力测试严重失败"));
     }
 }
