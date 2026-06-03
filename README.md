@@ -102,10 +102,11 @@ SmallFuturesLab 是一个独立的小资金期货生存研究项目。
 ## 6. 文档结构
 
 ```text
-docs/00_Project_Principles.md      项目最高原则
-docs/01_Account_Constraints.md     账户和风险约束
-docs/02_Research_Roadmap.md        研究路线
-docs/03_Operation_Sketch.md        未来操作大概长什么样
+docs/00_Project_Principles.md          项目最高原则
+docs/01_Account_Constraints.md         账户和风险约束
+docs/02_Research_Roadmap.md            研究路线
+docs/03_Operation_Sketch.md            未来操作大概长什么样
+docs/04_Trade_Permission_Pipeline.md   交易许可流水线
 ```
 
 ---
