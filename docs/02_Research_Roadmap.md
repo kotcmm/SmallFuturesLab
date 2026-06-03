@@ -25,6 +25,7 @@
 
 ```text
 账户约束
+→ 交易许可流水线
 → 品种筛选
 → 周期筛选
 → 风控底线
@@ -48,9 +49,10 @@
 
 ```text
 1. 账户约束；
-2. 品种筛选；
-3. 周期筛选；
-4. 风控底线。
+2. 交易许可流水线；
+3. 品种筛选；
+4. 周期筛选；
+5. 风控底线。
 ```
 
 当前不做：
@@ -107,13 +109,14 @@
 产出：
 
 ```text
-docs/04_Product_Filter.md
+docs/05_Product_Filter.md
 ```
 
 通过标准：
 
 ```text
 候选品种白名单；
+谨慎观察品种列表；
 排除品种列表；
 每个品种有明确通过或排除原因。
 ```
@@ -150,7 +153,7 @@ docs/04_Product_Filter.md
 产出：
 
 ```text
-docs/05_Timeframe_Study.md
+docs/06_Timeframe_Study.md
 ```
 
 通过标准：
@@ -185,7 +188,7 @@ docs/05_Timeframe_Study.md
 产出：
 
 ```text
-docs/06_Risk_Rules.md
+docs/07_Risk_Rules.md
 ```
 
 通过标准：
@@ -217,7 +220,7 @@ docs/06_Risk_Rules.md
 产出：
 
 ```text
-docs/07_Candidate_Direction_Review.md
+docs/08_Candidate_Direction_Review.md
 ```
 
 ---
@@ -237,7 +240,7 @@ docs/07_Candidate_Direction_Review.md
 产出：
 
 ```text
-docs/08_Data_Experiment_Report.md
+docs/09_Data_Experiment_Report.md
 ```
 
 ---
@@ -261,7 +264,7 @@ docs/08_Data_Experiment_Report.md
 产出：
 
 ```text
-docs/09_Rule_Set_Draft.md
+docs/10_Rule_Set_Draft.md
 ```
 
 ---
@@ -285,7 +288,7 @@ docs/09_Rule_Set_Draft.md
 产出：
 
 ```text
-docs/10_Backtest_Falsification_Report.md
+docs/11_Backtest_Falsification_Report.md
 ```
 
 ---
@@ -296,6 +299,7 @@ docs/10_Backtest_Falsification_Report.md
 
 ```text
 账户约束通过；
+交易许可通过；
 品种约束通过；
 周期约束通过；
 风控规则冻结；
@@ -321,13 +325,13 @@ docs/10_Backtest_Falsification_Report.md
 当前下一步：
 
 ```text
-1. 确认项目边界是否足够清楚；
-2. 建立“操作雏形”文档；
-3. 再建立品种筛选文档。
+1. 基于 docs/05_Product_Filter.md 建立候选品种筛选表；
+2. 收集候选品种的合约规格、保证金、手续费和流动性信息；
+3. 用交易许可模块测算 10,000 元和 20,000 元账户下的品种可研究性。
 ```
 
 ---
 
 ## 10. 当前结论
 
-现在先把“怎么活下来”说清楚，再谈“怎么交易”。
+现在先把“什么品种账户承受得起”说清楚，再谈“什么行情值得交易”。
