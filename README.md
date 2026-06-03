@@ -14,16 +14,17 @@ SmallFuturesLab 是一个独立的小资金期货生存研究项目。
 
 ## 1. 当前定位
 
-当前阶段只做四件事：
+当前阶段只做五件事：
 
 ```text
 账户约束
+交易许可流水线
 品种筛选
 周期筛选
 风控底线
 ```
 
-只有这四件事清楚之后，才讨论候选交易方法。
+只有这五件事清楚之后，才讨论候选交易方法。
 
 ---
 
@@ -107,6 +108,7 @@ docs/01_Account_Constraints.md         账户和风险约束
 docs/02_Research_Roadmap.md            研究路线
 docs/03_Operation_Sketch.md            未来操作大概长什么样
 docs/04_Trade_Permission_Pipeline.md   交易许可流水线
+docs/05_Product_Filter.md              品种筛选
 ```
 
 ---
