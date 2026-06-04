@@ -67,6 +67,11 @@ public class LocalMarketStatSource : IProductDataSource
             }
 
             var rowErrors = new List<ProductDataReadError>();
+
+            var exchange = ValidateRequiredString(GetValue(values, headerIndex, "Exchange"), "Exchange", rowNumber, rowErrors);
+            var productName = ValidateRequiredString(GetValue(values, headerIndex, "ProductName"), "ProductName", rowNumber, rowErrors);
+            var productCode = ValidateRequiredString(GetValue(values, headerIndex, "ProductCode"), "ProductCode", rowNumber, rowErrors);
+            var contractCode = ValidateRequiredString(GetValue(values, headerIndex, "ContractCode"), "ContractCode", rowNumber, rowErrors);
             var price = TryParseDouble(GetValue(values, headerIndex, "Price"), "Price", rowNumber, rowErrors);
             var typicalAtr = TryParseDouble(GetValue(values, headerIndex, "TypicalAtr"), "TypicalAtr", rowNumber, rowErrors);
             var volume = TryParseDouble(GetValue(values, headerIndex, "Volume"), "Volume", rowNumber, rowErrors);
@@ -74,9 +79,20 @@ public class LocalMarketStatSource : IProductDataSource
             var liquidityLevel = TryParseEnum<LiquidityLevel>(GetValue(values, headerIndex, "LiquidityLevel"), "LiquidityLevel", rowNumber, rowErrors);
             var bookContinuityLevel = TryParseEnum<BookContinuityLevel>(GetValue(values, headerIndex, "BookContinuityLevel"), "BookContinuityLevel", rowNumber, rowErrors);
             var rolloverClarity = TryParseEnum<RolloverClarity>(GetValue(values, headerIndex, "RolloverClarity"), "RolloverClarity", rowNumber, rowErrors);
+            var dataDate = ValidateRequiredString(GetValue(values, headerIndex, "DataDate"), "DataDate", rowNumber, rowErrors);
+            var dataSource = ValidateRequiredString(GetValue(values, headerIndex, "DataSource"), "DataSource", rowNumber, rowErrors);
             var needsReview = TryParseBool(GetValue(values, headerIndex, "NeedsReview"), "NeedsReview", rowNumber, rowErrors);
 
+            if (price.HasValue) price = ValidatePositiveFinite(price.Value, "Price", rowNumber, rowErrors);
+            if (typicalAtr.HasValue) typicalAtr = ValidatePositiveFinite(typicalAtr.Value, "TypicalAtr", rowNumber, rowErrors);
+            if (volume.HasValue) volume = ValidateNonNegativeFinite(volume.Value, "Volume", rowNumber, rowErrors);
+            if (openInterest.HasValue) openInterest = ValidateNonNegativeFinite(openInterest.Value, "OpenInterest", rowNumber, rowErrors);
+
             if (rowErrors.Count > 0
+                || exchange is null
+                || productName is null
+                || productCode is null
+                || contractCode is null
                 || !price.HasValue
                 || !typicalAtr.HasValue
                 || !volume.HasValue
@@ -84,6 +100,8 @@ public class LocalMarketStatSource : IProductDataSource
                 || !liquidityLevel.HasValue
                 || !bookContinuityLevel.HasValue
                 || !rolloverClarity.HasValue
+                || dataDate is null
+                || dataSource is null
                 || !needsReview.HasValue)
             {
                 errors.AddRange(rowErrors);
@@ -92,10 +110,10 @@ public class LocalMarketStatSource : IProductDataSource
 
             var record = new ProductDataRecord
             {
-                Exchange = GetValue(values, headerIndex, "Exchange"),
-                ProductName = GetValue(values, headerIndex, "ProductName"),
-                ProductCode = GetValue(values, headerIndex, "ProductCode"),
-                ContractCode = GetValue(values, headerIndex, "ContractCode"),
+                Exchange = exchange,
+                ProductName = productName,
+                ProductCode = productCode,
+                ContractCode = contractCode,
                 Price = price.Value,
                 TypicalAtr = typicalAtr.Value,
                 Volume = volume.Value,
@@ -103,8 +121,8 @@ public class LocalMarketStatSource : IProductDataSource
                 LiquidityLevel = liquidityLevel.Value,
                 BookContinuityLevel = bookContinuityLevel.Value,
                 RolloverClarity = rolloverClarity.Value,
-                DataDate = GetValue(values, headerIndex, "DataDate"),
-                DataSource = GetValue(values, headerIndex, "DataSource"),
+                DataDate = dataDate,
+                DataSource = dataSource,
                 NeedsReview = needsReview.Value,
                 DataSourceType = ProductDataSourceType.MarketDataApi,
             };
@@ -113,6 +131,48 @@ public class LocalMarketStatSource : IProductDataSource
         }
 
         return new ProductDataReadResult { Records = records, Errors = errors };
+    }
+
+    private static string? ValidateRequiredString(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            return value;
+
+        errors.Add(new ProductDataReadError
+        {
+            RowNumber = rowNumber,
+            FieldName = fieldName,
+            Reason = $"字段不能为空: '{value}'",
+        });
+        return null;
+    }
+
+    private static double? ValidatePositiveFinite(double value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    {
+        if (!double.IsNaN(value) && !double.IsInfinity(value) && value > 0)
+            return value;
+
+        errors.Add(new ProductDataReadError
+        {
+            RowNumber = rowNumber,
+            FieldName = fieldName,
+            Reason = $"必须是有限数字且大于 0: {value}",
+        });
+        return null;
+    }
+
+    private static double? ValidateNonNegativeFinite(double value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    {
+        if (!double.IsNaN(value) && !double.IsInfinity(value) && value >= 0)
+            return value;
+
+        errors.Add(new ProductDataReadError
+        {
+            RowNumber = rowNumber,
+            FieldName = fieldName,
+            Reason = $"必须是有限数字且不能为负数: {value}",
+        });
+        return null;
     }
 
     private static string GetValue(string[] values, Dictionary<string, int> index, string field)

@@ -336,6 +336,10 @@ public class LocalMarketStatSourceTests
         "Exchange,ProductName,ProductCode,ContractCode,Price,TypicalAtr,Volume,OpenInterest,LiquidityLevel,BookContinuityLevel,RolloverClarity,DataDate,DataSource,NeedsReview";
 
     private static string CreateCsvWithRow(
+        string exchange = "CZCE",
+        string productName = "甲醇",
+        string productCode = "MA",
+        string contractCode = "MA2501",
         string price = "2500",
         string typicalAtr = "20",
         string volume = "123456",
@@ -343,9 +347,239 @@ public class LocalMarketStatSourceTests
         string liquidityLevel = "Good",
         string bookContinuityLevel = "Good",
         string rolloverClarity = "Good",
+        string dataDate = "2024-01-01",
+        string dataSource = "本地行情统计",
         string needsReview = "true")
     {
-        return $"{Header}\nCZCE,甲醇,MA,MA2501,{price},{typicalAtr},{volume},{openInterest},{liquidityLevel},{bookContinuityLevel},{rolloverClarity},2024-01-01,本地行情统计,{needsReview}";
+        return $"{Header}\n{exchange},{productName},{productCode},{contractCode},{price},{typicalAtr},{volume},{openInterest},{liquidityLevel},{bookContinuityLevel},{rolloverClarity},{dataDate},{dataSource},{needsReview}";
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource Price 为 0 时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void PriceIsZero_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(price: "0");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Price", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource Price 为负数时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void PriceIsNegative_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(price: "-1");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Price", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource Price 为 NaN 时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void PriceIsNaN_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(price: "NaN");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Price", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource Price 为 Infinity 时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void PriceIsInfinity_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(price: "Infinity");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Price", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource TypicalAtr 为 0 时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void TypicalAtrIsZero_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(typicalAtr: "0");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("TypicalAtr", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource TypicalAtr 为负数时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void TypicalAtrIsNegative_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(typicalAtr: "-1");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("TypicalAtr", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource Volume 为负数时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void VolumeIsNegative_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(volume: "-1");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Volume", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource OpenInterest 为负数时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void OpenInterestIsNegative_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(openInterest: "-1");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("OpenInterest", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource ProductCode 为空时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void ProductCodeIsEmpty_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(productCode: "");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("ProductCode", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource ContractCode 为空时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void ContractCodeIsEmpty_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(contractCode: "");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("ContractCode", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource DataDate 为空时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void DataDateIsEmpty_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(dataDate: "");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("DataDate", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarketStatSource DataSource 为空时返回错误，坏行不进入 Records。
+    /// </summary>
+    [Fact]
+    public void DataSourceIsEmpty_ReturnsErrorAndDoesNotEnterRecords()
+    {
+        var csv = CreateCsvWithRow(dataSource: "");
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarketStatSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("DataSource", error.FieldName);
+        Assert.NotEmpty(error.Reason);
     }
 
     private static string WriteTempCsv(string csv)
