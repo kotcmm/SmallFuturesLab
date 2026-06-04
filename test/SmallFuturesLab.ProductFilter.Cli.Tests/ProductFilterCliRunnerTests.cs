@@ -32,6 +32,81 @@ public class ProductFilterCliRunnerTests
     }
 
     /// <summary>
+    /// 传入无效命令时返回失败并不创建输出文件。
+    /// </summary>
+    [Fact]
+    public void Run_InvalidCommand_ReturnsFailure()
+    {
+        var runner = new ProductFilterCliRunner();
+        var dir = CreateTempDir();
+        var inputPath = CreateValidCsv(dir);
+        var outputPath = Path.Combine(dir, "out.csv");
+        var summaryPath = Path.Combine(dir, "sum.md");
+
+        var exitCode = runner.Run(new[]
+        {
+            "abc", "xyz",
+            "--input", inputPath,
+            "--output", outputPath,
+            "--summary", summaryPath,
+        });
+
+        Assert.NotEqual(0, exitCode);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(summaryPath));
+    }
+
+    /// <summary>
+    /// 缺少 product-filter 命令时返回失败并不创建输出文件。
+    /// </summary>
+    [Fact]
+    public void Run_MissingProductFilterCommand_ReturnsFailure()
+    {
+        var runner = new ProductFilterCliRunner();
+        var dir = CreateTempDir();
+        var inputPath = CreateValidCsv(dir);
+        var outputPath = Path.Combine(dir, "out.csv");
+        var summaryPath = Path.Combine(dir, "sum.md");
+
+        var exitCode = runner.Run(new[]
+        {
+            "run",
+            "--input", inputPath,
+            "--output", outputPath,
+            "--summary", summaryPath,
+        });
+
+        Assert.NotEqual(0, exitCode);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(summaryPath));
+    }
+
+    /// <summary>
+    /// 缺少 run 子命令时返回失败并不创建输出文件。
+    /// </summary>
+    [Fact]
+    public void Run_MissingRunSubcommand_ReturnsFailure()
+    {
+        var runner = new ProductFilterCliRunner();
+        var dir = CreateTempDir();
+        var inputPath = CreateValidCsv(dir);
+        var outputPath = Path.Combine(dir, "out.csv");
+        var summaryPath = Path.Combine(dir, "sum.md");
+
+        var exitCode = runner.Run(new[]
+        {
+            "product-filter",
+            "--input", inputPath,
+            "--output", outputPath,
+            "--summary", summaryPath,
+        });
+
+        Assert.NotEqual(0, exitCode);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(summaryPath));
+    }
+
+    /// <summary>
     /// 缺少 input 参数时返回失败并输出可读错误。
     /// </summary>
     [Fact]
@@ -279,6 +354,56 @@ public class ProductFilterCliRunnerTests
 
         Assert.Equal(0, exitCode);
         Assert.True(File.Exists(outputPath));
+    }
+
+    /// <summary>
+    /// summary 输出目录不存在时可以自动创建。
+    /// </summary>
+    [Fact]
+    public void Run_SummaryDirectoryDoesNotExist_CreatesDirectory()
+    {
+        var runner = new ProductFilterCliRunner();
+        var dir = CreateTempDir();
+        var inputPath = CreateValidCsv(dir);
+        var outputPath = Path.Combine(dir, "out.csv");
+        var summaryDir = Path.Combine(dir, "reports", "nested");
+        var summaryPath = Path.Combine(summaryDir, "sum.md");
+
+        var exitCode = runner.Run(new[]
+        {
+            "product-filter", "run",
+            "--input", inputPath,
+            "--output", outputPath,
+            "--summary", summaryPath,
+        });
+
+        Assert.Equal(0, exitCode);
+        Assert.True(File.Exists(summaryPath));
+    }
+
+    /// <summary>
+    /// output 和 summary 位于不同不存在目录时均可自动创建。
+    /// </summary>
+    [Fact]
+    public void Run_OutputAndSummaryDirectoriesAreDifferentAndMissing_CreatesBoth()
+    {
+        var runner = new ProductFilterCliRunner();
+        var dir = CreateTempDir();
+        var inputPath = CreateValidCsv(dir);
+        var outputPath = Path.Combine(dir, "outputs", "out.csv");
+        var summaryPath = Path.Combine(dir, "reports", "sum.md");
+
+        var exitCode = runner.Run(new[]
+        {
+            "product-filter", "run",
+            "--input", inputPath,
+            "--output", outputPath,
+            "--summary", summaryPath,
+        });
+
+        Assert.Equal(0, exitCode);
+        Assert.True(File.Exists(outputPath));
+        Assert.True(File.Exists(summaryPath));
     }
 
     /// <summary>

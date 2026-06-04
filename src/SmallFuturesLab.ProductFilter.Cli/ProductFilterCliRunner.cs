@@ -18,6 +18,13 @@ public class ProductFilterCliRunner
     /// <returns>退出码，0 表示成功，非 0 表示失败。</returns>
     public int Run(string[] args)
     {
+        if (args.Length < 2 || args[0] != "product-filter" || args[1] != "run")
+        {
+            Console.WriteLine("错误：无效命令。正确用法：");
+            Console.WriteLine("  product-filter run --input <input.csv> --output <output.csv> --summary <summary.md>");
+            return 1;
+        }
+
         var inputPath = GetArgValue(args, "--input");
         var outputPath = GetArgValue(args, "--output");
         var summaryPath = GetArgValue(args, "--summary");
@@ -87,6 +94,13 @@ public class ProductFilterCliRunner
         var calculatedRows = calculatedResults.Select(r => r.Row).ToList();
         _csvWriter.Write(outputPath, calculatedRows);
         var markdown = _summaryWriter.WriteMarkdown(calculatedResults);
+
+        var summaryDir = Path.GetDirectoryName(summaryPath);
+        if (!string.IsNullOrWhiteSpace(summaryDir) && !Directory.Exists(summaryDir))
+        {
+            Directory.CreateDirectory(summaryDir);
+        }
+
         File.WriteAllText(summaryPath, markdown, System.Text.Encoding.UTF8);
 
         Console.WriteLine($"完成。输出 CSV：{outputPath}，汇总报告：{summaryPath}");
