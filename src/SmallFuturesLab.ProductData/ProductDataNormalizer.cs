@@ -30,32 +30,32 @@ public class ProductDataNormalizer
         if (string.IsNullOrWhiteSpace(record.ContractCode))
             return Fail("ContractCode 不能为空");
 
-        if (record.Price <= 0)
-            return Fail("Price 必须大于 0");
+        if (!IsValidPositiveFinite(record.Price))
+            return Fail("Price 必须是有限数字且大于 0");
 
-        if (!record.Multiplier.HasValue || record.Multiplier.Value <= 0)
-            return Fail("Multiplier 必须大于 0");
+        if (!record.Multiplier.HasValue || !IsValidPositiveFinite(record.Multiplier.Value))
+            return Fail("Multiplier 必须是有限数字且大于 0");
 
-        if (!record.TickSize.HasValue || record.TickSize.Value <= 0)
-            return Fail("TickSize 必须大于 0");
+        if (!record.TickSize.HasValue || !IsValidPositiveFinite(record.TickSize.Value))
+            return Fail("TickSize 必须是有限数字且大于 0");
 
-        if (record.MarginRate < 0)
-            return Fail("MarginRate 不能为负数");
+        if (!IsValidPositiveFinite(record.MarginRate))
+            return Fail("MarginRate 必须是有限数字且大于 0");
 
-        if (record.RoundTripFeePerLot < 0)
-            return Fail("RoundTripFeePerLot 不能为负数");
+        if (!IsValidPositiveFinite(record.RoundTripFeePerLot))
+            return Fail("RoundTripFeePerLot 必须是有限数字且大于 0");
 
-        if (accountEquity <= 0)
-            return Fail("AccountEquity 必须大于 0");
+        if (!IsValidPositiveFinite(accountEquity))
+            return Fail("AccountEquity 必须是有限数字且大于 0");
 
-        if (stopDistance <= 0)
-            return Fail("StopDistance 必须大于 0");
+        if (!IsValidPositiveFinite(stopDistance))
+            return Fail("StopDistance 必须是有限数字且大于 0");
 
         if (slippageTicks < 0)
             return Fail("SlippageTicks 不能为负数");
 
-        if (typicalAtr < 0)
-            return Fail("TypicalAtr 不能为负数");
+        if (!IsValidNonNegativeFinite(typicalAtr))
+            return Fail("TypicalAtr 必须是有限数字且不能为负数");
 
         if (string.IsNullOrWhiteSpace(record.DataDate))
             return Fail("DataDate 不能为空");
@@ -106,5 +106,15 @@ public class ProductDataNormalizer
             IsSuccess = false,
             Error = error,
         };
+    }
+
+    private static bool IsValidPositiveFinite(double value)
+    {
+        return !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
+    }
+
+    private static bool IsValidNonNegativeFinite(double value)
+    {
+        return !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
     }
 }

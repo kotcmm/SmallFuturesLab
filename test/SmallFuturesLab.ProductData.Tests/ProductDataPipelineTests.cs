@@ -157,6 +157,63 @@ public class ProductDataPipelineTests
     }
 
     /// <summary>
+    /// TradingPlanetHtmlSource Price 不可解析时不创建含 0 的记录。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_PriceCannotParse_DoesNotCreateZeroRecord()
+    {
+        var html = CreateHtmlWithRow(price: "bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("Price", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource MarginRate 不可解析时不创建含 0 的记录。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_MarginRateCannotParse_DoesNotCreateZeroRecord()
+    {
+        var html = CreateHtmlWithRow(marginRate: "bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("MarginRate", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource 开平合计手续费不可解析时不创建含 0 的记录。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_RoundTripFeeCannotParse_DoesNotCreateZeroRecord()
+    {
+        var html = CreateHtmlWithRow(roundTripFee: "bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("RoundTripFeePerLot", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
     /// LocalMarginFeeConfigSource 能读取本地 CSV fixture。
     /// </summary>
     [Fact]
@@ -269,6 +326,63 @@ public class ProductDataPipelineTests
         var result = source.Read(path);
 
         Assert.False(result.IsSuccess);
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource MarginRate 不可解析时不创建含 0 的记录。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_MarginRateCannotParse_DoesNotCreateZeroRecord()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,bad,6,2024-01-01,Test,true";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("MarginRate", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource RoundTripFeePerLot 不可解析时不创建含 0 的记录。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_RoundTripFeeCannotParse_DoesNotCreateZeroRecord()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,0.1,bad,2024-01-01,Test,true";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("RoundTripFeePerLot", error.FieldName);
+        Assert.NotEmpty(error.Reason);
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource NeedsReview 不可解析时不创建含 false 的记录。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_NeedsReviewCannotParse_DoesNotCreateFalseRecord()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,0.1,6,2024-01-01,Test,maybe";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+        var error = result.Errors.First();
+        Assert.True(error.RowNumber > 0);
+        Assert.Equal("NeedsReview", error.FieldName);
+        Assert.NotEmpty(error.Reason);
     }
 
     /// <summary>
@@ -607,6 +721,76 @@ public class ProductDataPipelineTests
 
         Assert.False(result.IsSuccess);
         Assert.Contains("RoundTripFeePerLot", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer Price 为 NaN 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenPriceIsNaN()
+    {
+        var record = CreateCompleteRecord() with { Price = double.NaN };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Price", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer Price 为 Infinity 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenPriceIsInfinity()
+    {
+        var record = CreateCompleteRecord() with { Price = double.PositiveInfinity };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Price", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer MarginRate 为 0 时返回失败（数据质量严格口径要求 > 0）。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenMarginRateIsZero()
+    {
+        var record = CreateCompleteRecord() with { MarginRate = 0 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("MarginRate", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer RoundTripFeePerLot 为 0 时返回失败（数据质量严格口径要求 > 0）。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenRoundTripFeePerLotIsZero()
+    {
+        var record = CreateCompleteRecord() with { RoundTripFeePerLot = 0 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("RoundTripFeePerLot", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer AccountEquity 为 NaN 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenAccountEquityIsNaN()
+    {
+        var record = CreateCompleteRecord();
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, double.NaN, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("AccountEquity", result.Error);
     }
 
     private static ProductDataRecord CreateCompleteRecord()

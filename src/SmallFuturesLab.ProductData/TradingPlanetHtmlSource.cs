@@ -53,7 +53,7 @@ public class TradingPlanetHtmlSource : IProductDataSource
             var closeTodayFee = TryParseDouble(cells[9], "CloseTodayFeePerLot", rowNumber, rowErrors);
             var roundTripFee = TryParseDouble(cells[10], "RoundTripFeePerLot", rowNumber, rowErrors);
 
-            if (rowErrors.Count > 0)
+            if (rowErrors.Count > 0 || !price.HasValue || !volume.HasValue || !marginRate.HasValue || !marginPerLot.HasValue || !openFee.HasValue || !closeYesterdayFee.HasValue || !closeTodayFee.HasValue || !roundTripFee.HasValue)
             {
                 errors.AddRange(rowErrors);
                 continue;
@@ -64,14 +64,14 @@ public class TradingPlanetHtmlSource : IProductDataSource
                 ProductName = cells[0],
                 ProductCode = cells[1],
                 ContractCode = cells[2],
-                Price = price,
-                Volume = volume,
-                MarginRate = marginRate,
-                MarginPerLot = marginPerLot,
-                OpenFeePerLot = openFee,
-                CloseYesterdayFeePerLot = closeYesterdayFee,
-                CloseTodayFeePerLot = closeTodayFee,
-                RoundTripFeePerLot = roundTripFee,
+                Price = price.Value,
+                Volume = volume.Value,
+                MarginRate = marginRate.Value,
+                MarginPerLot = marginPerLot.Value,
+                OpenFeePerLot = openFee.Value,
+                CloseYesterdayFeePerLot = closeYesterdayFee.Value,
+                CloseTodayFeePerLot = closeTodayFee.Value,
+                RoundTripFeePerLot = roundTripFee.Value,
                 IsMainContract = cells[11].Contains("是"),
                 DataSource = "交易星球手续费页面",
                 DataSourceType = ProductDataSourceType.ThirdPartyResearch,
@@ -95,7 +95,7 @@ public class TradingPlanetHtmlSource : IProductDataSource
         return cells;
     }
 
-    private static double TryParseDouble(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    private static double? TryParseDouble(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
     {
         if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
             return result;
@@ -106,6 +106,6 @@ public class TradingPlanetHtmlSource : IProductDataSource
             FieldName = fieldName,
             Reason = $"不可解析为数字: '{value}'",
         });
-        return 0;
+        return null;
     }
 }

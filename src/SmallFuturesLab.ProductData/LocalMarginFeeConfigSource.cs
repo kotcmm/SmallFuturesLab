@@ -45,7 +45,7 @@ public class LocalMarginFeeConfigSource : IProductDataSource
             var roundTripFee = TryParseDouble(GetValue(values, headerIndex, "RoundTripFeePerLot"), "RoundTripFeePerLot", rowNumber, rowErrors);
             var needsReview = TryParseBool(GetValue(values, headerIndex, "NeedsReview"), "NeedsReview", rowNumber, rowErrors);
 
-            if (rowErrors.Count > 0)
+            if (rowErrors.Count > 0 || !marginRate.HasValue || !roundTripFee.HasValue || !needsReview.HasValue)
             {
                 errors.AddRange(rowErrors);
                 continue;
@@ -55,11 +55,11 @@ public class LocalMarginFeeConfigSource : IProductDataSource
             {
                 Exchange = GetValue(values, headerIndex, "Exchange"),
                 ProductCode = GetValue(values, headerIndex, "ProductCode"),
-                MarginRate = marginRate,
-                RoundTripFeePerLot = roundTripFee,
+                MarginRate = marginRate.Value,
+                RoundTripFeePerLot = roundTripFee.Value,
                 DataDate = GetValue(values, headerIndex, "DataDate"),
                 DataSource = GetValue(values, headerIndex, "DataSource"),
-                NeedsReview = needsReview,
+                NeedsReview = needsReview.Value,
                 DataSourceType = ProductDataSourceType.ManualConfig,
             };
 
@@ -76,7 +76,7 @@ public class LocalMarginFeeConfigSource : IProductDataSource
         return string.Empty;
     }
 
-    private static double TryParseDouble(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    private static double? TryParseDouble(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
     {
         if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
             return result;
@@ -87,10 +87,10 @@ public class LocalMarginFeeConfigSource : IProductDataSource
             FieldName = fieldName,
             Reason = $"不可解析为数字: '{value}'",
         });
-        return 0;
+        return null;
     }
 
-    private static bool TryParseBool(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
+    private static bool? TryParseBool(string value, string fieldName, int rowNumber, List<ProductDataReadError> errors)
     {
         if (bool.TryParse(value, out var result))
             return result;
@@ -101,6 +101,6 @@ public class LocalMarginFeeConfigSource : IProductDataSource
             FieldName = fieldName,
             Reason = $"不可解析为布尔值: '{value}'",
         });
-        return false;
+        return null;
     }
 }
