@@ -15,6 +15,7 @@ docs/05_Product_Filter.md
 docs/product/01_Candidate_Product_Batch1.md
 docs/product/02_Data_Collection_Task.md
 docs/product/03_Product_Filter_Command_Line.md
+docs/product/04_Product_Data_Source_Pipeline.md
 templates/README.md
 ```
 
@@ -61,24 +62,29 @@ AGENTS.md = 工程规则
 docs/04_Trade_Permission_Pipeline.md 中定义的交易许可模块；
 docs/05_Product_Filter.md 中定义的品种筛选计算与校验；
 docs/product/02_Data_Collection_Task.md 中定义的数据文件校验、计算和汇总输出；
-docs/product/03_Product_Filter_Command_Line.md 中定义的品种筛选命令行工具。
+docs/product/03_Product_Filter_Command_Line.md 中定义的品种筛选命令行工具；
+docs/product/04_Product_Data_Source_Pipeline.md 中定义的数据源适配器框架和本地研究数据标准化流程。
 ```
 
 当前不允许实现：
 
 ```text
 策略
-行情
-指标
+行情指标
 回测
 执行
 实盘
 优化
 信号生成
-自动采集外部数据
+自动下单
+CTP 实盘连接
 联网抓取交易所数据
 根据行情生成交易建议
 ```
+
+当前允许为了研究数据源适配器读取本地测试文件或测试 HTML fixture。
+
+未经单独任务明确要求，不要实现真实联网爬虫。
 
 ---
 
@@ -184,11 +190,13 @@ src/
   SmallFuturesLab.Risk/
   SmallFuturesLab.ProductFilter/
   SmallFuturesLab.ProductFilter.Cli/
+  SmallFuturesLab.ProductData/
 
 test/
   SmallFuturesLab.Risk.Tests/
   SmallFuturesLab.ProductFilter.Tests/
   SmallFuturesLab.ProductFilter.Cli.Tests/
+  SmallFuturesLab.ProductData.Tests/
 ```
 
 更换技术栈或新增其他顶层模块前，先更新文档。
@@ -232,13 +240,14 @@ test/
 无外部副作用
 ```
 
-风险、品种筛选和命令行工具不得：
+风险、品种筛选、命令行工具和数据源适配器框架不得：
 
 ```text
-读取行情
-访问网络
+读取实时行情
+访问网络，除非任务明确要求
 写数据库
 调用交易接口
+连接 CTP 实盘柜台
 依赖当前时间
 自动生成交易建议
 ```
@@ -305,6 +314,10 @@ CSV 表头校验
 CLI 参数校验
 CLI 文件不存在
 CLI 输出文件生成
+数据源类型标记
+NeedsReview 标记
+标准化输出字段
+第三方研究数据不得伪装为账户实际数据
 ```
 
 测试名称应描述业务行为。
@@ -341,7 +354,9 @@ SmallFuturesLab.ProductFilter 可以编译
 SmallFuturesLab.ProductFilter.Tests 全部通过
 SmallFuturesLab.ProductFilter.Cli 可以编译
 SmallFuturesLab.ProductFilter.Cli.Tests 全部通过
-实现与 docs/04、docs/05、docs/product/02、docs/product/03 一致
-没有策略、行情、回测、执行或实盘代码
+SmallFuturesLab.ProductData 可以编译
+SmallFuturesLab.ProductData.Tests 全部通过
+实现与 docs/04、docs/05、docs/product/02、docs/product/03、docs/product/04 一致
+没有策略、行情指标、回测、执行、实盘或交易建议代码
 已创建 Pull Request
 ```
