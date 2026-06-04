@@ -103,17 +103,107 @@ SmallFuturesLab 是一个独立的小资金期货生存研究项目。
 ## 6. 文档结构
 
 ```text
-docs/00_Project_Principles.md          项目最高原则
-docs/01_Account_Constraints.md         账户和风险约束
-docs/02_Research_Roadmap.md            研究路线
-docs/03_Operation_Sketch.md            未来操作大概长什么样
-docs/04_Trade_Permission_Pipeline.md   交易许可流水线
-docs/05_Product_Filter.md              品种筛选
+docs/00_Project_Principles.md                  项目最高原则
+docs/01_Account_Constraints.md                 账户和风险约束
+docs/02_Research_Roadmap.md                    研究路线
+docs/03_Operation_Sketch.md                    未来操作大概长什么样
+docs/04_Trade_Permission_Pipeline.md           交易许可流水线
+docs/05_Product_Filter.md                      品种筛选
+docs/product/01_Candidate_Product_Batch1.md    第一批候选品种与数据采集口径
+docs/product/02_Data_Collection_Task.md        品种数据采集任务说明
+docs/product/03_Product_Filter_Command_Line.md 品种筛选命令行工具
 ```
 
 ---
 
-## 7. 当前结论
+## 7. 本地工具
+
+### 7.1 品种筛选 CLI
+
+品种筛选 CLI 用于把本地 CSV 采集表转换成可审查的计算结果。
+
+它只做：
+
+```text
+读取本地 CSV
+校验 CSV
+计算公式字段
+输出计算后的 CSV
+输出 Markdown summary
+```
+
+它不做：
+
+```text
+不联网
+不采集交易所数据
+不读取行情
+不判断交易方向
+不生成交易信号
+不生成实盘建议
+```
+
+运行示例：
+
+```bash
+dotnet run --project src/SmallFuturesLab.ProductFilter.Cli -- product-filter run --input data/product_filter/product_filter_batch1.csv --output data/product_filter/product_filter_batch1_calculated.csv --summary reports/product_filter_batch1_summary.md
+```
+
+输入 CSV 表头以此模板为准：
+
+```text
+templates/product_filter_template.csv
+```
+
+输出文件建议：
+
+```text
+data/product_filter/product_filter_batch1_calculated.csv
+reports/product_filter_batch1_summary.md
+```
+
+这些输出只表示：
+
+```text
+当前账户规模下是否允许进入后续周期研究；
+是否需要谨慎观察；
+是否因为账户、成本、保证金或流动性原因排除。
+```
+
+这些输出不表示：
+
+```text
+可以实盘交易；
+可以买入；
+可以做多；
+可以做空；
+存在收益机会。
+```
+
+---
+
+## 8. 当前下一步
+
+当前下一步是采集第一批品种的真实合约规格、保证金、手续费、ATR 和流动性信息。
+
+采集结果应保存为：
+
+```text
+data/product_filter/product_filter_batch1.csv
+```
+
+然后使用品种筛选 CLI 生成：
+
+```text
+data/product_filter/product_filter_batch1_calculated.csv
+reports/product_filter_batch1_summary.md
+```
+
+没有 DataDate 和 DataSource 的记录，不进入正式筛选表。
+
+---
+
+## 9. 当前结论
 
 SmallFuturesLab 的起点不是信号，而是账户约束。
 
