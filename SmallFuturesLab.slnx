@@ -1,11 +1,13 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/SmallFuturesLab.Risk/SmallFuturesLab.Risk.csproj" />
+    <Project Path="src/SmallFuturesLab.ProductData/SmallFuturesLab.ProductData.csproj" />
     <Project Path="src/SmallFuturesLab.ProductFilter.Cli/SmallFuturesLab.ProductFilter.Cli.csproj" />
     <Project Path="src/SmallFuturesLab.ProductFilter/SmallFuturesLab.ProductFilter.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/SmallFuturesLab.Risk.Tests/SmallFuturesLab.Risk.Tests.csproj" />
+    <Project Path="test/SmallFuturesLab.ProductData.Tests/SmallFuturesLab.ProductData.Tests.csproj" />
     <Project Path="test/SmallFuturesLab.ProductFilter.Cli.Tests/SmallFuturesLab.ProductFilter.Cli.Tests.csproj" />
     <Project Path="test/SmallFuturesLab.ProductFilter.Tests/SmallFuturesLab.ProductFilter.Tests.csproj" />
   </Folder>
