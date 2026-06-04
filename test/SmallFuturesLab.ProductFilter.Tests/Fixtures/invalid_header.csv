@@ -1,0 +1,2 @@
+Exchange,ProductName,ProductCode,ContractCode,Price,Multiplier,TickSize,TickValue,MarginRate,MarginPerLot,RoundTripFeePerLot,SlippageTicks,TypicalAtr,AtrMoneyPerLot,StopDistance,StopRiskMoney,SlippageMoney,CostMoney,TotalRiskMoney,AccountEquity,RiskRate,MarginRateOfEquity,CostRatio,LiquidityLevel,BookContinuityLevel,RolloverClarity,Result,Reasons,DataDate,BadFieldName
+TestExchange,TestProductA,TPA,TPA2501,2500,10,1,,0.10,,6,2,20,,12,,,,,10000,,,,Good,Good,Good,,,2024-01-01,TestSource
