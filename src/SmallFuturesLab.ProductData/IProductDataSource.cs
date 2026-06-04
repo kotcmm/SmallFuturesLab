@@ -6,9 +6,9 @@ namespace SmallFuturesLab.ProductData;
 public interface IProductDataSource
 {
     /// <summary>
-    /// 从指定路径读取数据并返回品种数据记录列表。
+    /// 从指定路径读取数据并返回读取结果。
     /// </summary>
     /// <param name="filePath">本地文件路径。</param>
-    /// <returns>品种数据记录列表。</returns>
-    IReadOnlyList<ProductDataRecord> Read(string filePath);
+    /// <returns>读取结果，包含记录和错误。</returns>
+    ProductDataReadResult Read(string filePath);
 }

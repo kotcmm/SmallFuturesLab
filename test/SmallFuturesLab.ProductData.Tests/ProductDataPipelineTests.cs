@@ -1,3 +1,4 @@
+using System.Text;
 using SmallFuturesLab.ProductFilter;
 
 namespace SmallFuturesLab.ProductData.Tests;
@@ -27,9 +28,10 @@ public class ProductDataPipelineTests
     {
         var htmlPath = Path.Combine(FixtureDir, "trading_planet_sample.html");
         var source = new TradingPlanetHtmlSource();
-        var records = source.Read(htmlPath);
+        var result = source.Read(htmlPath);
 
-        Assert.All(records, r => Assert.Equal(ProductDataSourceType.ThirdPartyResearch, r.DataSourceType));
+        Assert.True(result.IsSuccess);
+        Assert.All(result.Records, r => Assert.Equal(ProductDataSourceType.ThirdPartyResearch, r.DataSourceType));
     }
 
     /// <summary>
@@ -40,9 +42,10 @@ public class ProductDataPipelineTests
     {
         var htmlPath = Path.Combine(FixtureDir, "trading_planet_sample.html");
         var source = new TradingPlanetHtmlSource();
-        var records = source.Read(htmlPath);
+        var result = source.Read(htmlPath);
 
-        Assert.All(records, r => Assert.True(r.NeedsReview));
+        Assert.True(result.IsSuccess);
+        Assert.All(result.Records, r => Assert.True(r.NeedsReview));
     }
 
     /// <summary>
@@ -53,10 +56,11 @@ public class ProductDataPipelineTests
     {
         var htmlPath = Path.Combine(FixtureDir, "trading_planet_sample.html");
         var source = new TradingPlanetHtmlSource();
-        var records = source.Read(htmlPath);
+        var result = source.Read(htmlPath);
 
-        Assert.Equal(2, records.Count);
-        var first = records[0];
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Records.Count);
+        var first = result.Records[0];
         Assert.Equal("MA", first.ProductCode);
         Assert.Equal("MA2501", first.ContractCode);
         Assert.Equal(2500, first.Price);
@@ -72,9 +76,84 @@ public class ProductDataPipelineTests
     {
         var htmlPath = Path.Combine(FixtureDir, "trading_planet_sample.html");
         var source = new TradingPlanetHtmlSource();
-        var records = source.Read(htmlPath);
+        var result = source.Read(htmlPath);
 
-        Assert.DoesNotContain(records, r => r.DataSourceType == ProductDataSourceType.CtpAccountActual);
+        Assert.DoesNotContain(result.Records, r => r.DataSourceType == ProductDataSourceType.CtpAccountActual);
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource Price 不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_PriceCannotParse_ReturnsError()
+    {
+        var html = CreateHtmlWithRow(price: "not_a_number");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "Price");
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource MarginRate 不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_MarginRateCannotParse_ReturnsError()
+    {
+        var html = CreateHtmlWithRow(marginRate: "bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "MarginRate");
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource 开平合计手续费不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_RoundTripFeeCannotParse_ReturnsError()
+    {
+        var html = CreateHtmlWithRow(roundTripFee: "xxx");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "RoundTripFeePerLot");
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource 坏行不会进入 Records。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_BadRowDoesNotEnterRecords()
+    {
+        var html = CreateHtmlWithRow(price: "bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+    }
+
+    /// <summary>
+    /// TradingPlanetHtmlSource 多行错误时返回多个错误。
+    /// </summary>
+    [Fact]
+    public void TradingPlanetHtmlSource_MultipleBadRows_ReturnsMultipleErrors()
+    {
+        var html = CreateHtmlWithTwoRows(price1: "bad", price2: "also_bad");
+        var path = WriteTempHtml(html);
+        var source = new TradingPlanetHtmlSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.True(result.Errors.Count >= 2);
     }
 
     /// <summary>
@@ -85,9 +164,10 @@ public class ProductDataPipelineTests
     {
         var csvPath = Path.Combine(FixtureDir, "margin_fee_config.csv");
         var source = new LocalMarginFeeConfigSource();
-        var records = source.Read(csvPath);
+        var result = source.Read(csvPath);
 
-        Assert.Equal(2, records.Count);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Records.Count);
     }
 
     /// <summary>
@@ -98,9 +178,10 @@ public class ProductDataPipelineTests
     {
         var csvPath = Path.Combine(FixtureDir, "margin_fee_config.csv");
         var source = new LocalMarginFeeConfigSource();
-        var records = source.Read(csvPath);
+        var result = source.Read(csvPath);
 
-        Assert.All(records, r => Assert.Equal(ProductDataSourceType.ManualConfig, r.DataSourceType));
+        Assert.True(result.IsSuccess);
+        Assert.All(result.Records, r => Assert.Equal(ProductDataSourceType.ManualConfig, r.DataSourceType));
     }
 
     /// <summary>
@@ -111,9 +192,83 @@ public class ProductDataPipelineTests
     {
         var csvPath = Path.Combine(FixtureDir, "margin_fee_config.csv");
         var source = new LocalMarginFeeConfigSource();
-        var records = source.Read(csvPath);
+        var result = source.Read(csvPath);
 
-        Assert.DoesNotContain(records, r => r.DataSourceType == ProductDataSourceType.CtpAccountActual);
+        Assert.DoesNotContain(result.Records, r => r.DataSourceType == ProductDataSourceType.CtpAccountActual);
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource MarginRate 不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_MarginRateCannotParse_ReturnsError()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,bad,6,2024-01-01,Test,true";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "MarginRate");
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource RoundTripFeePerLot 不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_RoundTripFeeCannotParse_ReturnsError()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,0.1,bad,2024-01-01,Test,true";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "RoundTripFeePerLot");
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource NeedsReview 不可解析时返回错误。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_NeedsReviewCannotParse_ReturnsError()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,0.1,6,2024-01-01,Test,maybe";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Errors, e => e.FieldName == "NeedsReview");
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource 坏行不会进入 Records。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_BadRowDoesNotEnterRecords()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,bad,6,2024-01-01,Test,true";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(result.Records);
+    }
+
+    /// <summary>
+    /// LocalMarginFeeConfigSource 字段数量不足时返回错误。
+    /// </summary>
+    [Fact]
+    public void LocalMarginFeeConfigSource_RowWithMissingColumns_ReturnsError()
+    {
+        var csv = "Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview\nCZCE,MA,0.1";
+        var path = WriteTempCsv(csv);
+        var source = new LocalMarginFeeConfigSource();
+        var result = source.Read(path);
+
+        Assert.False(result.IsSuccess);
     }
 
     /// <summary>
@@ -300,6 +455,160 @@ public class ProductDataPipelineTests
         Assert.Equal("RB", results[1].Row.ProductCode);
     }
 
+    /// <summary>
+    /// ProductDataNormalizer ProductCode 为空时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenProductCodeIsEmpty()
+    {
+        var record = CreateCompleteRecord() with { ProductCode = "" };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("ProductCode", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer ContractCode 为空时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenContractCodeIsEmpty()
+    {
+        var record = CreateCompleteRecord() with { ContractCode = "" };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("ContractCode", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer Price 小于等于 0 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenPriceIsZeroOrNegative()
+    {
+        var record = CreateCompleteRecord() with { Price = 0 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Price", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer AccountEquity 小于等于 0 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenAccountEquityIsZeroOrNegative()
+    {
+        var record = CreateCompleteRecord();
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 0, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("AccountEquity", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer StopDistance 小于等于 0 时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenStopDistanceIsZeroOrNegative()
+    {
+        var record = CreateCompleteRecord();
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 0, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("StopDistance", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer SlippageTicks 为负数时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenSlippageTicksIsNegative()
+    {
+        var record = CreateCompleteRecord();
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, -1, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("SlippageTicks", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer TypicalAtr 为负数时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenTypicalAtrIsNegative()
+    {
+        var record = CreateCompleteRecord();
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, -5);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("TypicalAtr", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer DataDate 为空时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenDataDateIsEmpty()
+    {
+        var record = CreateCompleteRecord() with { DataDate = "" };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("DataDate", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer DataSource 为空时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenDataSourceIsEmpty()
+    {
+        var record = CreateCompleteRecord() with { DataSource = "" };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("DataSource", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer MarginRate 为负数时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenMarginRateIsNegative()
+    {
+        var record = CreateCompleteRecord() with { MarginRate = -0.1 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("MarginRate", result.Error);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer RoundTripFeePerLot 为负数时返回失败。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FailsWhenRoundTripFeePerLotIsNegative()
+    {
+        var record = CreateCompleteRecord() with { RoundTripFeePerLot = -1 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("RoundTripFeePerLot", result.Error);
+    }
+
     private static ProductDataRecord CreateCompleteRecord()
     {
         return new ProductDataRecord
@@ -325,5 +634,62 @@ public class ProductDataPipelineTests
             DataSourceType = ProductDataSourceType.ThirdPartyResearch,
             NeedsReview = true,
         };
+    }
+
+    private static string WriteTempHtml(string html)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.html");
+        File.WriteAllText(path, html, Encoding.UTF8);
+        return path;
+    }
+
+    private static string WriteTempCsv(string csv)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.csv");
+        File.WriteAllText(path, csv, Encoding.UTF8);
+        return path;
+    }
+
+    private static string CreateHtmlWithRow(
+        string price = "2500",
+        string marginRate = "0.10",
+        string roundTripFee = "6")
+    {
+        return $@"<!DOCTYPE html>
+<html><body><table><tbody>
+<tr>
+  <td>甲醇</td>
+  <td>MA</td>
+  <td>MA2501</td>
+  <td>{price}</td>
+  <td>123456</td>
+  <td>{marginRate}</td>
+  <td>2500</td>
+  <td>3</td>
+  <td>3</td>
+  <td>3</td>
+  <td>{roundTripFee}</td>
+  <td>是</td>
+</tr>
+</tbody></table></body></html>";
+    }
+
+    private static string CreateHtmlWithTwoRows(
+        string price1 = "2500",
+        string price2 = "3500")
+    {
+        return $@"<!DOCTYPE html>
+<html><body><table><tbody>
+<tr>
+  <td>甲醇</td><td>MA</td><td>MA2501</td><td>{price1}</td>
+  <td>123456</td><td>0.10</td><td>2500</td>
+  <td>3</td><td>3</td><td>3</td><td>6</td><td>是</td>
+</tr>
+<tr>
+  <td>螺纹钢</td><td>RB</td><td>RB2501</td><td>{price2}</td>
+  <td>789012</td><td>0.12</td><td>4200</td>
+  <td>4.5</td><td>4.5</td><td>4.5</td><td>9</td><td>是</td>
+</tr>
+</tbody></table></body></html>";
     }
 }

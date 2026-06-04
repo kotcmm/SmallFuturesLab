@@ -24,23 +24,44 @@ public class ProductDataNormalizer
         int slippageTicks,
         double typicalAtr)
     {
+        if (string.IsNullOrWhiteSpace(record.ProductCode))
+            return Fail("ProductCode 不能为空");
+
+        if (string.IsNullOrWhiteSpace(record.ContractCode))
+            return Fail("ContractCode 不能为空");
+
+        if (record.Price <= 0)
+            return Fail("Price 必须大于 0");
+
         if (!record.Multiplier.HasValue || record.Multiplier.Value <= 0)
-        {
-            return new ProductDataNormalizeResult
-            {
-                IsSuccess = false,
-                Error = $"品种 {record.ProductCode} 缺少有效的 Multiplier（合约乘数）",
-            };
-        }
+            return Fail("Multiplier 必须大于 0");
 
         if (!record.TickSize.HasValue || record.TickSize.Value <= 0)
-        {
-            return new ProductDataNormalizeResult
-            {
-                IsSuccess = false,
-                Error = $"品种 {record.ProductCode} 缺少有效的 TickSize（最小变动价位）",
-            };
-        }
+            return Fail("TickSize 必须大于 0");
+
+        if (record.MarginRate < 0)
+            return Fail("MarginRate 不能为负数");
+
+        if (record.RoundTripFeePerLot < 0)
+            return Fail("RoundTripFeePerLot 不能为负数");
+
+        if (accountEquity <= 0)
+            return Fail("AccountEquity 必须大于 0");
+
+        if (stopDistance <= 0)
+            return Fail("StopDistance 必须大于 0");
+
+        if (slippageTicks < 0)
+            return Fail("SlippageTicks 不能为负数");
+
+        if (typicalAtr < 0)
+            return Fail("TypicalAtr 不能为负数");
+
+        if (string.IsNullOrWhiteSpace(record.DataDate))
+            return Fail("DataDate 不能为空");
+
+        if (string.IsNullOrWhiteSpace(record.DataSource))
+            return Fail("DataSource 不能为空");
 
         var reasons = new List<string>();
         if (record.NeedsReview)
@@ -75,6 +96,15 @@ public class ProductDataNormalizer
         {
             IsSuccess = true,
             Row = row,
+        };
+    }
+
+    private static ProductDataNormalizeResult Fail(string error)
+    {
+        return new ProductDataNormalizeResult
+        {
+            IsSuccess = false,
+            Error = error,
         };
     }
 }
