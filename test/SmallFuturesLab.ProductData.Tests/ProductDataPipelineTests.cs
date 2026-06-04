@@ -812,12 +812,86 @@ public class ProductDataPipelineTests
             CloseTodayFeePerLot = 3,
             Volume = 123456,
             OpenInterest = 500000,
+            TypicalAtr = 0,
+            LiquidityLevel = LiquidityLevel.Unknown,
+            BookContinuityLevel = BookContinuityLevel.Unknown,
+            RolloverClarity = RolloverClarity.Unknown,
             IsMainContract = true,
             DataDate = "2024-01-01",
             DataSource = "交易星球手续费页面",
             DataSourceType = ProductDataSourceType.ThirdPartyResearch,
             NeedsReview = true,
         };
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer 能把 ProductDataRecord 中的 LiquidityLevel 复制到 ProductFilterRow。
+    /// </summary>
+    [Fact]
+    public void Normalizer_CopiesLiquidityLevelFromRecordToRow()
+    {
+        var record = CreateCompleteRecord() with { LiquidityLevel = LiquidityLevel.Good };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(LiquidityLevel.Good, result.Row.LiquidityLevel);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer 能把 ProductDataRecord 中的 BookContinuityLevel 复制到 ProductFilterRow。
+    /// </summary>
+    [Fact]
+    public void Normalizer_CopiesBookContinuityLevelFromRecordToRow()
+    {
+        var record = CreateCompleteRecord() with { BookContinuityLevel = BookContinuityLevel.Medium };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(BookContinuityLevel.Medium, result.Row.BookContinuityLevel);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer 能把 ProductDataRecord 中的 RolloverClarity 复制到 ProductFilterRow。
+    /// </summary>
+    [Fact]
+    public void Normalizer_CopiesRolloverClarityFromRecordToRow()
+    {
+        var record = CreateCompleteRecord() with { RolloverClarity = RolloverClarity.Poor };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(RolloverClarity.Poor, result.Row.RolloverClarity);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer 当 record.TypicalAtr 有效时优先使用记录中的值。
+    /// </summary>
+    [Fact]
+    public void Normalizer_UsesRecordTypicalAtrWhenAvailable()
+    {
+        var record = CreateCompleteRecord() with { TypicalAtr = 30 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 20);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(30, result.Row.TypicalAtr);
+    }
+
+    /// <summary>
+    /// ProductDataNormalizer 当 record.TypicalAtr 为 0 时回退到外部参数。
+    /// </summary>
+    [Fact]
+    public void Normalizer_FallsBackToExternalTypicalAtrWhenRecordTypicalAtrIsZero()
+    {
+        var record = CreateCompleteRecord() with { TypicalAtr = 0 };
+        var normalizer = new ProductDataNormalizer();
+        var result = normalizer.Normalize(record, 10000, 12, 2, 25);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(25, result.Row.TypicalAtr);
     }
 
     private static string WriteTempHtml(string html)
