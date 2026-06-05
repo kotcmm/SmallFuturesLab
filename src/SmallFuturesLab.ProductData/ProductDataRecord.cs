@@ -1,3 +1,5 @@
+using SmallFuturesLab.ProductFilter;
+
 namespace SmallFuturesLab.ProductData;
 
 /// <summary>
@@ -49,6 +51,18 @@ public record ProductDataRecord
 
     /// <summary>持仓量。</summary>
     public double OpenInterest { get; init; }
+
+    /// <summary>典型 ATR。</summary>
+    public double TypicalAtr { get; init; }
+
+    /// <summary>流动性等级。</summary>
+    public LiquidityLevel LiquidityLevel { get; init; } = LiquidityLevel.Unknown;
+
+    /// <summary>盘口连续性等级。</summary>
+    public BookContinuityLevel BookContinuityLevel { get; init; } = BookContinuityLevel.Unknown;
+
+    /// <summary>主力合约换月清晰度。</summary>
+    public RolloverClarity RolloverClarity { get; init; } = RolloverClarity.Unknown;
 
     /// <summary>是否主力合约。</summary>
     public bool IsMainContract { get; init; }

@@ -15,7 +15,7 @@ public class ProductDataNormalizer
     /// <param name="accountEquity">账户权益，测算维度。</param>
     /// <param name="stopDistance">测算止损距离。</param>
     /// <param name="slippageTicks">预估滑点 tick 数。</param>
-    /// <param name="typicalAtr">典型 ATR。</param>
+    /// <param name="typicalAtr">典型 ATR，当记录中未提供有效值时作为回退。</param>
     /// <returns>标准化结果。</returns>
     public ProductDataNormalizeResult Normalize(
         ProductDataRecord record,
@@ -54,7 +54,9 @@ public class ProductDataNormalizer
         if (slippageTicks < 0)
             return Fail("SlippageTicks 不能为负数");
 
-        if (!IsValidNonNegativeFinite(typicalAtr))
+        double effectiveTypicalAtr = IsValidPositiveFinite(record.TypicalAtr) ? record.TypicalAtr : typicalAtr;
+
+        if (!IsValidNonNegativeFinite(effectiveTypicalAtr))
             return Fail("TypicalAtr 必须是有限数字且不能为负数");
 
         if (string.IsNullOrWhiteSpace(record.DataDate))
@@ -81,12 +83,12 @@ public class ProductDataNormalizer
             MarginRate = record.MarginRate,
             RoundTripFeePerLot = record.RoundTripFeePerLot,
             SlippageTicks = slippageTicks,
-            TypicalAtr = typicalAtr,
+            TypicalAtr = effectiveTypicalAtr,
             StopDistance = stopDistance,
             AccountEquity = accountEquity,
-            LiquidityLevel = LiquidityLevel.Unknown,
-            BookContinuityLevel = BookContinuityLevel.Unknown,
-            RolloverClarity = RolloverClarity.Unknown,
+            LiquidityLevel = record.LiquidityLevel,
+            BookContinuityLevel = record.BookContinuityLevel,
+            RolloverClarity = record.RolloverClarity,
             DataDate = record.DataDate,
             DataSource = record.DataSource,
             Reasons = string.Join("；", reasons),
