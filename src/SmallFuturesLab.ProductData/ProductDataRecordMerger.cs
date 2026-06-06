@@ -93,8 +93,8 @@ public class ProductDataRecordMerger
         var typicalAtr = MergePositiveDouble(records, r => r.TypicalAtr, "TypicalAtr", conflictMessages, ref firstConflictField);
 
         // 非负 double 字段合并（成交量、持仓量）
-        var volume = MergePositiveDouble(records, r => r.Volume, "Volume", conflictMessages, ref firstConflictField);
-        var openInterest = MergePositiveDouble(records, r => r.OpenInterest, "OpenInterest", conflictMessages, ref firstConflictField);
+        var volume = MergeNonNegativeDouble(records, r => r.Volume, "Volume", conflictMessages, ref firstConflictField);
+        var openInterest = MergeNonNegativeDouble(records, r => r.OpenInterest, "OpenInterest", conflictMessages, ref firstConflictField);
 
         // 枚举字段合并
         var liquidityLevel = MergeEnum(records, r => r.LiquidityLevel, LiquidityLevel.Unknown, "LiquidityLevel", conflictMessages, ref firstConflictField);
@@ -103,11 +103,19 @@ public class ProductDataRecordMerger
 
         // DataSource 特殊合并：去重后连接
         var dataSources = records.Select(r => r.DataSource).Where(IsValidString).Distinct().ToList();
-        var mergedDataSource = string.Join("；", dataSources);
+        var mergedDataSourceParts = new List<string>(dataSources);
 
-        // DataSourceType 合并：一致则保留，不一致保留第一条
-        var sourceTypes = records.Select(r => r.DataSourceType).ToList();
+        // DataSourceType 合并：一致则保留，不一致保留第一条并在 DataSource 中记录
+        var sourceTypes = records.Select(r => r.DataSourceType).Distinct().ToList();
         var mergedSourceType = sourceTypes.First();
+
+        if (sourceTypes.Count > 1)
+        {
+            var typeNames = string.Join(" vs ", sourceTypes.Select(t => t.ToString()));
+            mergedDataSourceParts.Add($"DataSourceType不一致: {typeNames}");
+        }
+
+        var mergedDataSource = string.Join("；", mergedDataSourceParts);
 
         // Bool 字段 OR 合并
         var needsReview = records.Any(r => r.NeedsReview);
@@ -203,6 +211,24 @@ public class ProductDataRecordMerger
         return validValues.Count >= 1 ? validValues[0] : 0;
     }
 
+    private static double MergeNonNegativeDouble(
+        List<ProductDataRecord> records,
+        Func<ProductDataRecord, double> selector,
+        string fieldName,
+        List<string> conflictMessages,
+        ref string? firstConflictField)
+    {
+        var validValues = records.Select(selector).Where(IsNonNegativeFinite).Distinct().ToList();
+
+        if (validValues.Count > 1)
+        {
+            conflictMessages.Add($"{fieldName} 冲突: {string.Join(" vs ", validValues)}");
+            firstConflictField ??= fieldName;
+        }
+
+        return validValues.Count >= 1 ? validValues[0] : 0;
+    }
+
     private static T MergeEnum<T>(
         List<ProductDataRecord> records,
         Func<ProductDataRecord, T> selector,
@@ -225,4 +251,6 @@ public class ProductDataRecordMerger
     private static bool IsValidString(string value) => !string.IsNullOrWhiteSpace(value);
 
     private static bool IsPositiveFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
+
+    private static bool IsNonNegativeFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
 }

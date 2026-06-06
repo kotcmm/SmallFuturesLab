@@ -16,6 +16,8 @@ public class ProductDataRecordMergerTests
         ContractCode = "MA2501",
         Multiplier = 10,
         TickSize = 1,
+        Volume = 123456,
+        OpenInterest = 500000,
         DataDate = "2024-01-01",
         DataSource = "测试合约规格",
         DataSourceType = ProductDataSourceType.ManualConfig,
@@ -31,6 +33,8 @@ public class ProductDataRecordMergerTests
         OpenFeePerLot = 3,
         CloseYesterdayFeePerLot = 3,
         CloseTodayFeePerLot = 3,
+        Volume = 123456,
+        OpenInterest = 500000,
         DataDate = "2024-01-01",
         DataSource = "测试保证金手续费",
         DataSourceType = ProductDataSourceType.ManualConfig,
@@ -433,6 +437,142 @@ public class ProductDataRecordMergerTests
         Assert.Single(result.Records);
         Assert.Equal(ProductDataSourceType.ManualConfig, result.Records[0].DataSourceType);
         Assert.NotEqual(ProductDataSourceType.CtpAccountActual, result.Records[0].DataSourceType);
+    }
+
+    #endregion
+
+    #region Volume and OpenInterest Non-Negative
+
+    [Fact]
+    public void Volume_Zero_Only_Source_Merges_To_Zero_No_Error()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { Volume = 0, DataSource = "来源A" };
+        var result = merger.Merge([r1]);
+
+        Assert.Single(result.Records);
+        Assert.Empty(result.Errors);
+        Assert.Equal(0, result.Records[0].Volume);
+    }
+
+    [Fact]
+    public void OpenInterest_Zero_Only_Source_Merges_To_Zero_No_Error()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { OpenInterest = 0, DataSource = "来源A" };
+        var result = merger.Merge([r1]);
+
+        Assert.Single(result.Records);
+        Assert.Empty(result.Errors);
+        Assert.Equal(0, result.Records[0].OpenInterest);
+    }
+
+    [Fact]
+    public void Volume_Zero_And_100_Conflict()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { Volume = 0, DataSource = "来源A" };
+        var r2 = CreateMarketRecord() with { Volume = 100, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Empty(result.Records);
+        Assert.Single(result.Errors);
+        Assert.Equal("Volume", result.Errors[0].FieldName);
+    }
+
+    [Fact]
+    public void OpenInterest_Zero_And_100_Conflict()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { OpenInterest = 0, DataSource = "来源A" };
+        var r2 = CreateMarketRecord() with { OpenInterest = 100, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Empty(result.Records);
+        Assert.Single(result.Errors);
+        Assert.Equal("OpenInterest", result.Errors[0].FieldName);
+    }
+
+    [Fact]
+    public void Volume_Negative_Treated_As_Invalid()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { Volume = -1, DataSource = "来源A" };
+        var r2 = CreateMarketRecord() with { Volume = 123456, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        Assert.Empty(result.Errors);
+        Assert.Equal(123456, result.Records[0].Volume);
+    }
+
+    [Fact]
+    public void OpenInterest_Negative_Treated_As_Invalid()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateMarketRecord() with { OpenInterest = -1, DataSource = "来源A" };
+        var r2 = CreateMarketRecord() with { OpenInterest = 500000, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        Assert.Empty(result.Errors);
+        Assert.Equal(500000, result.Records[0].OpenInterest);
+    }
+
+    #endregion
+
+    #region DataSourceType Inconsistency Tracing
+
+    [Fact]
+    public void DataSourceType_Different_Merge_Success()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateSpecRecord() with { DataSourceType = ProductDataSourceType.ManualConfig };
+        var r2 = CreateMarketRecord() with { DataSourceType = ProductDataSourceType.MarketDataApi };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public void DataSourceType_Different_DataSource_Contains_Inconsistency_Note()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateSpecRecord() with { DataSourceType = ProductDataSourceType.ManualConfig };
+        var r2 = CreateMarketRecord() with { DataSourceType = ProductDataSourceType.MarketDataApi };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        var dataSource = result.Records[0].DataSource;
+        Assert.Contains("DataSourceType不一致", dataSource);
+    }
+
+    [Fact]
+    public void DataSourceType_Different_DataSource_Contains_Type_Names()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateSpecRecord() with { DataSourceType = ProductDataSourceType.ManualConfig, DataSource = "来源A" };
+        var r2 = CreateMarketRecord() with { DataSourceType = ProductDataSourceType.MarketDataApi, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        var dataSource = result.Records[0].DataSource;
+        Assert.Contains("ManualConfig", dataSource);
+        Assert.Contains("MarketDataApi", dataSource);
+    }
+
+    [Fact]
+    public void DataSourceType_Same_No_Inconsistency_Note()
+    {
+        var merger = new ProductDataRecordMerger();
+        var r1 = CreateSpecRecord() with { DataSourceType = ProductDataSourceType.ManualConfig, DataSource = "来源A" };
+        var r2 = CreateFeeRecord() with { DataSourceType = ProductDataSourceType.ManualConfig, DataSource = "来源B" };
+        var result = merger.Merge([r1, r2]);
+
+        Assert.Single(result.Records);
+        var dataSource = result.Records[0].DataSource;
+        Assert.DoesNotContain("DataSourceType不一致", dataSource);
     }
 
     #endregion
