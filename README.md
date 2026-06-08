@@ -184,6 +184,8 @@ reports/product_filter_batch1_summary.md
 
 ## 8. 当前下一步
 
+ProductData 模块已经完成测试 fixture 到 ProductFilterRow 的最小数据闭环；正式采集 batch1 真实数据前，应先阅读 `src/SmallFuturesLab.ProductData/README.md`，确认数据流向、模块边界和禁止事项。
+
 当前下一步是采集第一批品种的真实合约规格、保证金、手续费、ATR 和流动性信息。
 
 采集结果应保存为：
