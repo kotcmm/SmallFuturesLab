@@ -1,0 +1,4 @@
+Exchange,ProductName,ProductCode,ContractCode,Multiplier,TickSize,Volume,OpenInterest,DataDate,DataSource,NeedsReview
+CZCE,甲醇,MA,MA2501,10,1,123456,500000,2024-01-01,测试合约规格,true
+CZCE,甲醇,MA,MA2502,10,1,123456,500000,2024-01-01,测试合约规格,true
+SHFE,螺纹钢,RB,RB2501,10,1,789012,600000,2024-01-01,测试合约规格,true
