@@ -1,4 +1,0 @@
-Exchange,ProductCode,ContractCode,MarginRate,RoundTripFeePerLot,Volume,OpenInterest,DataDate,DataSource,NeedsReview
-CZCE,MA,MA2501,0.10,6,123456,500000,2024-01-01,测试保证金手续费,true
-SHFE,RB,RB2501,0.12,9,789012,600000,2024-01-01,测试保证金手续费,true
-CZCE,MA,MA2501,bad,6,123456,500000,2024-01-01,测试保证金手续费,true
