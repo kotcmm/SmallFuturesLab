@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SmallFuturesLab.Core\SmallFuturesLab.Core.csproj" />
     <ProjectReference Include="..\SmallFuturesLab.TradingPlanet\SmallFuturesLab.TradingPlanet.csproj" />

@@ -2,84 +2,82 @@
 
 SmallFuturesLab 是一个小资金期货品种准入过滤器。
 
-当前目标很简单：
+它当前只回答一个问题：
 
 ```text
-交易星球下载表格
-→ 读取成品种信息
-→ 输入账户资金和风险假设
-→ 计算一手合约对账户的压力
-→ 输出 Allowed / Caution / Rejected
+某个期货合约的一手，在 1 万 / 2 万账户下，
+保证金、止损、手续费和滑点压力是否可承受？
 ```
 
-本项目当前不做策略、不做信号、不做回测、不做实盘、不自动下单。
-
----
-
-## 项目结构
+当前不做：
 
 ```text
-src/SmallFuturesLab.Core           核心计算：账户风险、品种过滤、读取接口
-src/SmallFuturesLab.TradingPlanet  交易星球下载表格读取实现
-src/SmallFuturesLab.Cli            命令行入口，读取表格并输出过滤结果
+策略；
+信号；
+行情判断；
+回测；
+实盘；
+自动下单；
+交易建议。
 ```
 
-测试项目：
+## 当前项目结构
 
 ```text
-test/SmallFuturesLab.Core.Tests
-test/SmallFuturesLab.TradingPlanet.Tests
+src/SmallFuturesLab.Core
+src/SmallFuturesLab.TradingPlanet
+src/SmallFuturesLab.Cli
 ```
 
----
+### SmallFuturesLab.Core
 
-## 核心概念
+核心领域模块。
 
-`ProductInfo` 表示一个期货合约的基础数据。
-
-`AccountRiskSetting` 表示当前小账户的测算假设，例如账户权益、止损 tick、滑点 tick、风险上限和保证金上限。
-
-`ProductFilterCalculator` 根据一手合约保证金、止损风险、手续费、滑点和账户规模，输出：
+只包含：
 
 ```text
-Allowed  = 可以进入后续研究
-Caution  = 谨慎观察
-Rejected = 当前账户规模下排除
+品种信息；
+账户资料；
+风控阈值；
+测算场景；
+品种过滤计算；
+过滤结果。
 ```
 
-这些结果不是交易建议，只是是否进入后续研究的准入过滤。
+Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
 
----
+### SmallFuturesLab.TradingPlanet
 
-## CLI 示例
+交易星球下载表格读取模块。
+
+它只负责：
+
+```text
+读取本地交易星球下载文件；
+解析字段；
+转换成 Core 的 ProductInfo；
+保留读取错误和来源备注。
+```
+
+它不做风险计算，也不输出 Allowed / Caution / Rejected。
+
+### SmallFuturesLab.Cli
+
+命令行入口。
+
+它负责：
+
+```text
+读取命令行参数；
+调用 TradingPlanet 读取本地文件；
+调用 Core 过滤；
+输出结果。
+```
+
+## 运行示例
 
 ```bash
 dotnet run --project src/SmallFuturesLab.Cli -- filter --input "期货手续费和保证金一览表2026年06月09日更新.xls" --account 10000 --stop-ticks 10 --slippage-ticks 2
 ```
 
-也可以测算 20000 账户：
-
-```bash
-dotnet run --project src/SmallFuturesLab.Cli -- filter --input "期货手续费和保证金一览表2026年06月09日更新.xls" --account 20000 --stop-ticks 10 --slippage-ticks 2
-```
-
----
-
-## 当前边界
-
-本项目当前只回答：
-
-```text
-这个合约的一手，对 1 万 / 2 万账户来说，保证金、止损、手续费和滑点压力是否可承受？
-```
-
-不回答：
-
-```text
-能不能赚钱；
-该不该买；
-该不该卖；
-什么时候入场；
-如何止盈；
-是否实盘交易。
-```
+输出结果只表示是否进入后续研究，不表示可以买卖或实盘交易。
