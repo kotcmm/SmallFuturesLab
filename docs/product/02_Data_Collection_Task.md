@@ -25,7 +25,27 @@
 
 ---
 
-## 2. 输入文件
+## 2. 正式采集前闸门
+
+本文档描述最终采集任务，但正式创建：
+
+```text
+data/product_filter/product_filter_batch1.csv
+```
+
+之前，必须先完成：
+
+```text
+docs/product/05_Batch1_Data_Collection_Gate.md
+```
+
+中的采集前检查清单。
+
+如果检查清单未完成，不应创建正式 batch1 数据文件，不应生成 calculated CSV，也不应生成 summary report。
+
+---
+
+## 3. 输入文件
 
 采集任务输入：
 
@@ -45,7 +65,7 @@ data/product_filter/product_filter_batch1.csv
 
 ---
 
-## 3. 采集范围
+## 4. 采集范围
 
 第一批采集范围以 `docs/product/01_Candidate_Product_Batch1.md` 为准。
 
@@ -63,7 +83,7 @@ data/product_filter/product_filter_batch1.csv
 
 ---
 
-## 4. 账户规模建模
+## 5. 账户规模建模
 
 账户规模是测算维度，不是固定字段名。
 
@@ -105,11 +125,11 @@ Result20k
 
 ---
 
-## 5. 字段分组
+## 6. 字段分组
 
 模板字段分为四类。
 
-### 5.1 外部采集字段
+### 6.1 外部采集字段
 
 这些字段必须从交易所、期货公司、行情软件或其他明确来源获得：
 
@@ -135,7 +155,7 @@ DataSource
 
 ---
 
-### 5.2 初始假设字段
+### 6.2 初始假设字段
 
 这些字段允许先使用统一假设，但必须明确记录：
 
@@ -172,7 +192,7 @@ AccountEquity 第一轮至少生成两类：
 
 ---
 
-### 5.3 公式计算字段
+### 6.3 公式计算字段
 
 这些字段由公式计算，不应人工手填：
 
@@ -193,7 +213,7 @@ CostRatio
 
 ---
 
-### 5.4 结论字段
+### 6.4 结论字段
 
 这些字段必须基于测算结果填写：
 
@@ -214,7 +234,7 @@ Reasons 必须写清楚原因，不能只写“通过”或“不适合”。
 
 ---
 
-## 6. 每个品种的行数要求
+## 7. 每个品种的行数要求
 
 每个品种至少生成：
 
@@ -249,26 +269,27 @@ AccountEquity = 20000。
 
 ---
 
-## 7. 采集顺序
+## 8. 采集顺序
 
 按以下顺序执行：
 
 ```text
-1. 复制 templates/product_filter_template.csv；
-2. 保存为 data/product_filter/product_filter_batch1.csv；
-3. 按候选品种清单逐个填写外部采集字段；
-4. 为每个品种生成 StopDistance 场景；
-5. 为每个 StopDistance 场景生成 AccountEquity 场景；
-6. 计算所有公式字段；
-7. 使用交易许可逻辑得出 Result；
-8. 填写 Reasons；
-9. 检查 DataDate 和 DataSource；
-10. 按 AccountEquity 汇总候选白名单、谨慎观察列表和排除列表。
+1. 完成 docs/product/05_Batch1_Data_Collection_Gate.md 中的采集前检查清单；
+2. 复制 templates/product_filter_template.csv；
+3. 保存为 data/product_filter/product_filter_batch1.csv；
+4. 按候选品种清单逐个填写外部采集字段；
+5. 为每个品种生成 StopDistance 场景；
+6. 为每个 StopDistance 场景生成 AccountEquity 场景；
+7. 计算所有公式字段；
+8. 使用交易许可逻辑得出 Result；
+9. 填写 Reasons；
+10. 检查 DataDate 和 DataSource；
+11. 按 AccountEquity 汇总候选白名单、谨慎观察列表和排除列表。
 ```
 
 ---
 
-## 8. 数据来源记录要求
+## 9. 数据来源记录要求
 
 每条记录必须有 `DataDate` 和 `DataSource`。
 
@@ -287,7 +308,7 @@ DataSource 应写明来源类型，例如：
 
 ---
 
-## 9. 人工分级口径
+## 10. 人工分级口径
 
 LiquidityLevel、BookContinuityLevel、RolloverClarity 先允许人工分级。
 
@@ -313,7 +334,7 @@ Unknown = 暂无数据。
 
 ---
 
-## 10. 验收检查
+## 11. 验收检查
 
 采集完成后，必须检查：
 
@@ -333,7 +354,7 @@ Reasons 非空；
 
 ---
 
-## 11. 当前不做什么
+## 12. 当前不做什么
 
 本任务不做：
 
@@ -350,7 +371,7 @@ Reasons 非空；
 
 ---
 
-## 12. 后续输出
+## 13. 后续输出
 
 采集完成后，应形成：
 
@@ -358,22 +379,3 @@ Reasons 非空；
 data/product_filter/product_filter_batch1.csv
 reports/product_filter_batch1_summary.md
 ```
-
-其中 summary 应按 `AccountEquity` 分组，至少包含：
-
-```text
-每个账户规模下的优先候选品种；
-每个账户规模下的谨慎观察品种；
-每个账户规模下的排除品种；
-需要复核的数据；
-主要排除原因统计；
-不同账户规模之间的结论差异。
-```
-
----
-
-## 13. 当前结论
-
-本任务的目标不是证明某个品种能赚钱。
-
-目标是把每个品种、每个止损场景、每个账户规模都放进同一张风险测算表，让后续判断基于数据，而不是主观印象。
