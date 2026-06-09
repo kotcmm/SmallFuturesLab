@@ -112,6 +112,7 @@ docs/05_Product_Filter.md                      品种筛选
 docs/product/01_Candidate_Product_Batch1.md    第一批候选品种与数据采集口径
 docs/product/02_Data_Collection_Task.md        品种数据采集任务说明
 docs/product/03_Product_Filter_Command_Line.md 品种筛选命令行工具
+docs/product/05_Batch1_Data_Collection_Gate.md Batch1 真实数据采集前检查清单
 ```
 
 ---
@@ -185,6 +186,8 @@ reports/product_filter_batch1_summary.md
 ## 8. 当前下一步
 
 ProductData 模块已经完成测试 fixture 到 ProductFilterRow 的最小数据闭环；正式采集 batch1 真实数据前，应先阅读 `src/SmallFuturesLab.ProductData/README.md`，确认数据流向、模块边界和禁止事项。
+
+正式创建 batch1 真实数据文件前，必须先完成 `docs/product/05_Batch1_Data_Collection_Gate.md` 中的检查清单。
 
 当前下一步是采集第一批品种的真实合约规格、保证金、手续费、ATR 和流动性信息。
 
