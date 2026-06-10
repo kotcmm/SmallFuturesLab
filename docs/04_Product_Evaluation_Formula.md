@@ -6,7 +6,7 @@
 
 ## 1. 文档目的
 
-本文档定义 `ProductEvaluation` 中的全部测算公式和阈值判断逻辑。
+本文档定义品种测算的全部公式和阈值判断逻辑。
 
 它不判断行情方向，不判断买卖点，不判断策略是否有优势。
 
@@ -26,7 +26,7 @@
 
 ## 2. 输入定义
 
-### 2.1 品种输入（Product）
+### 2.1 品种输入
 
 | 字段 | 含义 |
 |---|---|
@@ -40,7 +40,7 @@
 | `MarginRate` | 保证金比例 |
 | `RoundTripFee` | 单手开平总手续费估计 |
 
-### 2.2 账户风险配置（AccountRiskConfig）
+### 2.2 账户风险配置
 
 | 字段 | 含义 | 当前默认值 |
 |---|---|---:|
@@ -52,7 +52,7 @@
 | `CautionCostRatio` | 成本占比谨慎阈值 | 0.20 |
 | `RejectCostRatio` | 成本占比拒绝阈值 | 0.30 |
 
-### 2.3 测算条件（FilterCondition）
+### 2.3 测算条件
 
 | 字段 | 含义 | 当前默认值 |
 |---|---|---:|
@@ -325,20 +325,7 @@ Status = Rejected
 
 ---
 
-## 7. 与代码的对应关系
-
-本文档中的公式和判断逻辑，由以下代码实现：
-
-```text
-src/SmallFuturesLab.Core/ProductEvaluation.cs
-test/SmallFuturesLab.Core.Tests/ProductEvaluationTests.cs
-```
-
-如果文档和代码出现冲突，以当前代码实现为准，并先修正文档后再调整代码。
-
----
-
-## 8. 当前不做什么
+## 7. 当前不做什么
 
 当前阶段不实现：
 

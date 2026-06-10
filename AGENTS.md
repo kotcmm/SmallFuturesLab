@@ -53,37 +53,20 @@ AGENTS.md = 工程规则
 
 ---
 
-## 3. 当前实现范围
+## 3. 当前任务边界
 
 当前允许实现：
 
 ```text
 docs/04_Product_Evaluation_Formula.md 中定义的品种测算公式和阈值判断；
 docs/05_Product_Filter.md 中定义的品种筛选计算逻辑；
-docs/product/03_Product_Filter_Command_Line.md 中定义的命令行工具（单文件读取模式）。
+docs/product/03_Product_Filter_Command_Line.md 中定义的命令行工具。
 ```
 
 当前不允许实现：
 
 ```text
-策略
-行情指标
-回测
-执行
-实盘
-优化
-信号生成
-自动下单
-CTP 实盘连接
-联网抓取交易所数据
-根据行情生成交易建议
-CSV 批量输入输出
-Markdown 汇总报告
-多止损场景自动展开
-多账户规模自动展开
-连续亏损压力测试
-每日亏损限制检查
-交易次数限制
+策略、行情指标、回测、执行、实盘、信号生成、自动下单、CTP 连接、联网抓取、交易建议。
 ```
 
 当前允许为了研究数据源适配器读取本地测试文件或测试 HTML fixture。
@@ -94,110 +77,45 @@ Markdown 汇总报告
 
 ## 4. 本地 AI 编码助手协作流程
 
-默认远程仓库名：
+默认远程仓库名：`origin`
 
-```text
-origin
-```
+开始任务前：`git fetch origin`，基于 `origin/main` 创建任务分支，清理本地已合并或已废弃的无效分支。
 
-开始任务前：
+开发约束：不直接在 main 分支上修改代码，分支名应与任务说明一致，用户希望尽量少手动操作。
 
-```text
-git fetch origin
-基于 origin/main 创建任务分支
-清理本地已合并或已废弃的无效分支
-```
+本地 AI 编码助手应主动完成：拉取、建分支、实现、测试、提交、推送、创建 Pull Request。
 
-开发约束：
+当前阶段默认验收命令：`dotnet test`
 
-```text
-不直接在 main 分支上修改代码
-分支名应与任务说明一致
-用户希望尽量少手动操作
-```
+验收通过后：提交 commit、推送到 origin、创建 Pull Request。
 
-本地 AI 编码助手应主动完成：
-
-```text
-拉取
-建分支
-实现
-测试
-提交
-推送
-创建 Pull Request
-```
-
-当前阶段默认验收命令：
-
-```text
-dotnet test
-```
-
-如果仓库后续增加解决方案文件，优先使用文档指定的解决方案级验收命令。
-
-验收通过后：
-
-```text
-提交 commit
-推送到 origin
-创建 Pull Request
-```
-
-如果本地已安装 GitHub CLI，使用：
-
-```text
-gh pr create
-```
+如果本地已安装 GitHub CLI，使用 `gh pr create`。
 
 如果没有 `gh`，最终输出必须给出可复制的 PR 创建命令或浏览器创建链接。
 
-PR 描述必须包含：
+PR 描述必须包含：实现范围、测试结果、未实现范围、是否遵守 TDD、是否遵守一类一文件、是否遵守中文 XML 注释约定、是否修改了业务文档。
 
-```text
-实现范围
-测试结果
-未实现范围
-是否遵守 TDD
-是否遵守一类一文件
-是否遵守中文 XML 注释约定
-是否修改了业务文档
-```
-
-不允许因为追求速度而绕过：
-
-```text
-AGENTS.md
-docs/ 文档
-测试
-工程规范
-```
-
-用户最好只需要启动一次本地 AI 编码助手命令，然后把 PR 链接交给 ChatGPT review。
+不允许因为追求速度而绕过：AGENTS.md、docs/ 文档、测试、工程规范。
 
 ---
 
 ## 5. 技术栈与项目结构
 
-技术栈：
+技术栈：C#、.NET 10 (net10.0)、xUnit。
+
+当前生产项目：
 
 ```text
-C#
-.NET 10 (TargetFramework: net10.0)
-xUnit
+SmallFuturesLab.Core
+SmallFuturesLab.TradingPlanet
+SmallFuturesLab.Cli
 ```
 
-当前允许结构：
+当前测试项目：
 
 ```text
-src/
-  SmallFuturesLab.Core/
-  SmallFuturesLab.TradingPlanet/
-  SmallFuturesLab.Cli/
-
-test/
-  SmallFuturesLab.Core.Tests/
-  SmallFuturesLab.TradingPlanet.Tests/
+SmallFuturesLab.Core.Tests
+SmallFuturesLab.TradingPlanet.Tests
 ```
 
 更换技术栈或新增其他顶层模块前，先更新文档。
@@ -206,18 +124,7 @@ test/
 
 ## 6. TDD 开发约束
 
-开发必须遵循 TDD。
-
-顺序：
-
-```text
-1. 先写测试
-2. 运行测试，确认测试失败
-3. 写最小实现
-4. 运行测试，确认测试通过
-5. 必要时重构
-6. 重构后再次运行测试
-```
+开发必须遵循 TDD：先写测试 → 运行确认失败 → 写最小实现 → 运行确认通过 → 必要时重构 → 重构后再运行测试。
 
 禁止先写实现再补测试。
 
@@ -231,45 +138,15 @@ test/
 
 ## 7. 实现风格
 
-优先：
+优先：小类、纯计算、不可变输入、业务命名清晰、无外部副作用。
 
-```text
-小类
-纯计算
-不可变输入
-业务命名清晰
-无外部副作用
-```
-
-风险、品种筛选、命令行工具和数据源适配器框架不得：
-
-```text
-读取实时行情
-访问网络，除非任务明确要求
-写数据库
-调用交易接口
-连接 CTP 实盘柜台
-依赖当前时间
-自动生成交易建议
-```
+风险、品种筛选、命令行工具和数据源适配器不得：读取实时行情、访问网络（除非任务明确要求）、写数据库、调用交易接口、连接 CTP 实盘柜台、依赖当前时间、自动生成交易建议。
 
 ---
 
 ## 8. 命名约束
 
-避免模糊命名：
-
-```text
-Manager
-Helper
-Processor
-Service
-Engine
-Strategy
-Signal
-Alpha
-Predictor
-```
+避免模糊命名：Manager、Helper、Processor、Service、Engine、Strategy、Signal、Alpha、Predictor。
 
 优先使用相关文档中的业务命名。
 
@@ -298,20 +175,7 @@ public enum 及 enum 成员必须有中文 XML 注释
 
 ## 10. 测试要求
 
-测试必须覆盖：
-
-```text
-标准示例
-边界输入
-无效输入
-Allowed 结果
-Caution 结果
-Rejected 结果
-单次返回多个原因
-公式字段计算
-CLI 参数校验
-CLI 文件不存在
-```
+测试必须覆盖：标准示例、边界输入、无效输入、Allowed 结果、Caution 结果、Rejected 结果、单次返回多个原因、公式字段计算、CLI 参数校验、CLI 文件不存在。
 
 测试名称应描述业务行为。
 

@@ -148,11 +148,11 @@ DataSource。
 8. 记录数据日期和数据来源。
 ```
 
-采集完成后，使用 `ProductEvaluation` 进行测算：
+采集完成后，使用品种测算公式进行测算：
 
 ```text
-Product + AccountRiskConfig + FilterCondition
-→ ProductEvaluation
+品种数据 + 账户配置 + 测算条件
+→ 公式计算
 → Allowed / Caution / Rejected
 ```
 

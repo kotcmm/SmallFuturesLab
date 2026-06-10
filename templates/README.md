@@ -10,6 +10,6 @@
 
 > 当前阶段尚未定义 CSV 模板。
 >
-> 品种数据通过交易星球下载文件（HTML .xls）直接输入，经 `TradingPlanetFileReader` 解析后进入 `ProductEvaluation` 测算。
+> 品种数据通过交易星球下载文件（HTML .xls）直接输入，经解析后进入品种测算。
 >
 > CSV 批量输入模板将在未来阶段补充。

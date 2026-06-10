@@ -65,7 +65,7 @@ Rejected  = 排除，当前账户规模不研究。
 
 ## 4. 核心公式
 
-品种筛选依赖 `ProductEvaluation` 中的公式：
+品种筛选依赖 `docs/04_Product_Evaluation_Formula.md` 中的公式：
 
 ```text
 TickValue = TickSize × Multiplier
@@ -79,7 +79,7 @@ RiskRate = TotalRiskMoney / AccountEquity
 CostRatio = CostMoney / StopRiskMoney
 ```
 
-公式字段由代码自动计算，不应人工手填。
+公式字段由测算逻辑自动计算，不应人工手填。
 
 ---
 
@@ -141,16 +141,16 @@ CostRatio > 0.3；
 
 ---
 
-## 8. 与交易许可模块的关系
+## 8. 与测算公式的关系
 
 品种筛选不重新定义风险公式。
 
-品种筛选直接调用 `ProductEvaluation`：
+品种筛选直接调用 `docs/04_Product_Evaluation_Formula.md` 中定义的测算逻辑：
 
 ```text
-Product + AccountRiskConfig + FilterCondition
-→ ProductEvaluation
-→ ProductEvaluationStatus
+品种数据 + 账户配置 + 测算条件
+→ 公式计算
+→ Allowed / Caution / Rejected
 ```
 
 如果品种筛选文档和测算公式文档出现冲突，以 `docs/04_Product_Evaluation_Formula.md` 为准，并先修正文档后再实现代码。

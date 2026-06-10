@@ -80,8 +80,6 @@
 
 ## 5. 连续亏损
 
-> **当前代码尚未实现。** 以下规则为未来阶段保留。
-
 候选方法必须假设连续亏损会发生。
 
 压力测试：
@@ -97,8 +95,6 @@
 ---
 
 ## 6. 每日亏损
-
-> **当前代码尚未实现。** 以下规则为未来阶段保留。
 
 每日最大亏损：
 
@@ -224,46 +220,56 @@
 
 ---
 
-## 12. 当前已实现的检查公式
-
-当前代码实现的公式：
+## 12. 检查公式
 
 ```text
-TickValue = TickSize × Multiplier
-MarginPerLot = Price × Multiplier × MarginRate
-MarginRateOfEquity = MarginPerLot / AccountEquity
-StopRiskMoney = StopTicks × TickValue
-SlippageMoney = SlippageTicks × TickValue
-CostMoney = RoundTripFee + SlippageMoney
-TotalRiskMoney = StopRiskMoney + CostMoney
-RiskRate = TotalRiskMoney / AccountEquity
-CostRatio = CostMoney / StopRiskMoney
+一跳金额 = 最小变动价位 × 合约乘数
+一手保证金 = 价格 × 合约乘数 × 保证金比例
+止损风险 = 止损 tick 数 × 一跳金额 × 手数
+滑点金额 = 滑点 tick 数 × 一跳金额 × 手数
+交易成本 = 开平总手续费 × 手数 + 滑点金额
+总风险 = 止损风险 + 交易成本
+风险占比 = 总风险 / 账户权益
+保证金占比 = 一手保证金 × 手数 / 账户权益
+成本占比 = 交易成本 / 止损风险
 ```
 
-`ProductEvaluation` 根据 `AccountRiskConfig` 中的阈值判断：
+候选品种必须输出：
 
 ```text
-RiskRate      → 与 CautionRiskRate / RejectRiskRate 比较
-MarginRateOfEquity → 与 CautionMarginRate / RejectMarginRate 比较
-CostRatio     → 与 CautionCostRatio / RejectCostRatio 比较
+1 手 1 tick 金额；
+一手保证金；
+常见止损金额；
+保证金占用；
+手续费；
+滑点估计；
+手续费 + 滑点占 1R 比例；
+对 10,000 元账户的风险占比；
+对 20,000 元账户的风险占比。
 ```
-
-输出：`Allowed` / `Caution` / `Rejected`
 
 ---
 
-## 13. 尚未实现的约束（未来阶段）
+## 13. 初始准入标准
 
-以下约束在当前代码中尚未自动检查，但属于项目原则：
+候选方法进入策略研究前，必须满足：
 
 ```text
-连续亏损压力测试；
-每日亏损上限检查；
-交易次数限制；
-硬性禁止条件（隔夜、加仓、无止损）。
+单笔风险 <= 账户 1% 为常规上限；
+单笔风险 <= 账户 2% 为极限上限；
+每日最大亏损 <= 账户 2%；
+手续费 + 滑点 <= 0.2R 为优先；
+手续费 + 滑点 > 0.3R 原则上排除；
+保证金占用 <= 账户 40% 为优先；
+保证金占用 > 50% 原则上排除；
+只研究 1 手；
+不依赖隔夜；
+不依赖加仓；
+不依赖摊平；
+不依赖重仓；
+不依赖扛单；
+不依赖主观盘口感觉。
 ```
-
-这些将在后续阶段逐步加入。
 
 ---
 
