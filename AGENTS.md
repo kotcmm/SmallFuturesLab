@@ -8,7 +8,7 @@
 README.md
 docs/00_SmallFuturesLab_System_Framework.md
 docs/01_Positive_Expectancy_and_Risk_Constraints.md
-docs/02_Daily_Opening_Product_Filter.md
+docs/02_Daily_Candidate_Product_Selection.md
 ```
 
 涉及术语解释时阅读：
@@ -34,14 +34,14 @@ README.md = 项目入口说明
 SmallFuturesLab 当前围绕一条主线推进：
 
 ```text
-正期望条件 → 风险约束 → 品种过滤 → 行情结构 → 执行记录 → 验证修正
+正期望条件 → 风险约束 → 候选品种筛选 → 行情结构 → 执行记录 → 验证修正
 ```
 
 前两步已形成文档：
 
 ```text
 建立正期望与风险约束
-每天开盘过滤品种
+日内候选品种筛选
 ```
 
 核心概念：
@@ -97,7 +97,7 @@ SpaceRatio
 每日风险约束
 连续亏损约束
 最大回撤约束
-开盘品种过滤
+日内候选品种筛选
 参数输入到输出约束的完整推算
 ```
 
@@ -210,7 +210,7 @@ SmallFuturesLab.TradingPlanet.Tests
 无外部副作用
 ```
 
-风险计算、期望计算、品种过滤、参数推导应设计成可独立测试的领域对象或纯函数。
+风险计算、期望计算、品种筛选、参数推导应设计成可独立测试的领域对象或纯函数。
 
 ---
 
@@ -241,8 +241,8 @@ ExpectedValue
 CostInR
 MinimumWinRate
 RiskConstraint
-DailyProductFilter
-ProductFilterResult
+DailyCandidateProductSelection
+CandidateProductSelectionResult
 ```
 
 ---
@@ -283,7 +283,7 @@ TradeR <= AccountR 约束
 每日亏损约束
 连续亏损约束
 最大回撤金额计算
-开盘品种过滤状态
+日内候选品种筛选状态
 拒绝原因
 候选品种排序
 ```
