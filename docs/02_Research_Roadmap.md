@@ -8,16 +8,23 @@
 
 当前阶段不是策略实现，也不是收益回测。
 
-当前阶段只回答四个问题：
+当前阶段已完成的最小闭环：
 
 ```text
-账户能不能承受？
-品种能不能交易？
-周期能不能执行？
-风控底线能不能落实？
+交易星球下载文件
+→ TradingPlanetFileReader 解析
+→ Product
+→ AccountRiskConfig + FilterCondition
+→ ProductEvaluation（公式计算 + 阈值判断）
+→ ProductEvaluationStatus（Allowed / Caution / Rejected）
+→ CLI 输出
 ```
 
-这四个问题没有回答之前，不进入入场信号、收益回测或实盘交易。
+这个闭环只回答一个问题：
+
+```text
+给定品种的一手，在指定账户规模和止损设想下，是否可承受？
+```
 
 ---
 
@@ -25,7 +32,7 @@
 
 ```text
 账户约束
-→ 交易许可流水线
+→ 品种测算公式
 → 品种筛选
 → 周期筛选
 → 风控底线
@@ -43,21 +50,23 @@
 
 ---
 
-## 3. 当前必须完成
+## 3. 当前已完成
 
-当前只完成：
+当前代码已实现：
 
 ```text
-1. 账户约束；
-2. 交易许可流水线；
-3. 品种筛选；
-4. 周期筛选；
-5. 风控底线。
+1. 账户约束（AccountRiskConfig 中的阈值配置）；
+2. 品种测算公式（ProductEvaluation 中的 9 个公式）；
+3. 品种筛选（ProductEvaluation.Evaluate 输出 Allowed / Caution / Rejected）。
 ```
 
 当前不做：
 
 ```text
+CSV 批量输入输出；
+多止损场景展开；
+ATR 止损测算；
+周期筛选；
 最终策略规则；
 收益率结论；
 实盘准备；
@@ -83,47 +92,92 @@
 
 ---
 
-## 5. 阶段 1：品种筛选
+## 5. 阶段 1：品种测算公式（已完成）
 
-目标：找出 1 万到 2 万账户可以继续研究的品种。
+目标：建立可计算、可测试的品种风险测算公式。
 
-每个品种必须记录：
-
-```text
-交易所；
-品种代码；
-合约乘数；
-最小变动价位；
-一跳金额；
-保证金估计；
-手续费估计；
-盘口连续性；
-典型 ATR；
-1 手 1 ATR 金额；
-常见止损距离金额；
-手续费 + 滑点占 1R 比例；
-对 10,000 元账户的风险占比；
-对 20,000 元账户的风险占比。
-```
-
-产出：
+当前产出：
 
 ```text
-docs/05_Product_Filter.md
+docs/04_Product_Evaluation_Formula.md
+src/SmallFuturesLab.Core/ProductEvaluation.cs
+test/SmallFuturesLab.Core.Tests/ProductEvaluationTests.cs
 ```
 
 通过标准：
 
 ```text
-候选品种白名单；
-谨慎观察品种列表；
-排除品种列表；
-每个品种有明确通过或排除原因。
+所有 9 个公式有独立测试；
+RiskRate、MarginRateOfEquity、CostRatio 阈值判断有测试；
+Allowed / Caution / Rejected 三种状态有测试；
+dotnet test 全部通过。
 ```
 
 ---
 
-## 6. 阶段 2：周期筛选
+## 6. 阶段 2：数据源读取（已完成）
+
+目标：从本地交易星球下载文件中读取品种数据。
+
+当前产出：
+
+```text
+src/SmallFuturesLab.TradingPlanet/TradingPlanetFileReader.cs
+test/SmallFuturesLab.TradingPlanet.Tests/TradingPlanetFileReaderTests.cs
+```
+
+通过标准：
+
+```text
+能解析 HTML 表格中的价格、保证金、手续费；
+能补齐合约乘数和最小变动价位；
+能保留读取错误；
+dotnet test 全部通过。
+```
+
+---
+
+## 7. 阶段 3：CLI 入口（已完成）
+
+目标：提供命令行入口，运行单文件测算。
+
+当前产出：
+
+```text
+src/SmallFuturesLab.Cli/Program.cs
+```
+
+通过标准：
+
+```text
+能读取本地交易星球文件；
+能构造 AccountRiskConfig 和 FilterCondition；
+能调用 ProductEvaluation 计算每个品种；
+能打印结果；
+参数缺失时返回非 0。
+```
+
+---
+
+## 8. 未来阶段：批量筛选与 CSV 输入
+
+> 以下阶段尚未实现，仅在规划中。
+
+目标：支持从 CSV 批量输入，输出计算后 CSV 和 Markdown 汇总。
+
+需要实现：
+
+```text
+CSV 读取与校验；
+多止损场景展开；
+多账户规模展开；
+公式字段自动计算；
+结果汇总报告。
+```
+
+---
+
+## 9. 未来阶段：周期筛选
 
 目标：判断哪些周期适合小资金账户和人工执行。
 
@@ -137,36 +191,9 @@ docs/05_Product_Filter.md
 30 分钟。
 ```
 
-每个周期必须比较：
-
-```text
-噪音；
-信号数量；
-平均止损距离；
-单笔风险金额；
-手续费占 1R 比例；
-滑点占 1R 比例；
-是否适合人工执行；
-是否容易过度交易。
-```
-
-产出：
-
-```text
-docs/06_Timeframe_Study.md
-```
-
-通过标准：
-
-```text
-确定第一批候选周期；
-排除不适合当前阶段的周期；
-不能只因为机会多就选择短周期。
-```
-
 ---
 
-## 7. 阶段 3：风控底线
+## 10. 未来阶段：风控底线
 
 目标：在候选方向之前，先冻结风控底线。
 
@@ -185,25 +212,11 @@ docs/06_Timeframe_Study.md
 强制停止交易条件。
 ```
 
-产出：
-
-```text
-docs/07_Risk_Rules.md
-```
-
-通过标准：
-
-```text
-风控规则可以人工执行；
-风控规则可以复盘；
-任何候选方向不得绕过风控规则。
-```
-
 ---
 
-## 8. 后续阶段
+## 11. 后续阶段
 
-### 8.1 候选方向评价
+### 11.1 候选方向评价
 
 在账户、品种、周期和风控底线完成后，才允许提出候选方向。
 
@@ -217,15 +230,9 @@ docs/07_Risk_Rules.md
 是否符合风控底线。
 ```
 
-产出：
-
-```text
-docs/08_Candidate_Direction_Review.md
-```
-
 ---
 
-### 8.2 数据实验
+### 11.2 数据实验
 
 数据实验不是收益优化，只检查：
 
@@ -237,15 +244,9 @@ docs/08_Candidate_Direction_Review.md
 是否存在明显灾难性结构。
 ```
 
-产出：
-
-```text
-docs/09_Data_Experiment_Report.md
-```
-
 ---
 
-### 8.3 规则冻结
+### 11.3 规则冻结
 
 冻结：
 
@@ -261,15 +262,9 @@ docs/09_Data_Experiment_Report.md
 连续亏损处理。
 ```
 
-产出：
-
-```text
-docs/10_Rule_Set_Draft.md
-```
-
 ---
 
-### 8.4 回测证伪
+### 11.4 回测证伪
 
 回测只用于暴露问题，不用于证明未来赚钱。
 
@@ -285,22 +280,15 @@ docs/10_Rule_Set_Draft.md
 极端行情表现。
 ```
 
-产出：
-
-```text
-docs/11_Backtest_Falsification_Report.md
-```
-
 ---
 
-### 8.5 模拟交易与小规模实盘
+### 11.5 模拟交易与小规模实盘
 
 进入实盘前必须满足：
 
 ```text
 账户约束通过；
-交易许可通过；
-品种约束通过；
+品种测算通过；
 周期约束通过；
 风控规则冻结；
 回测证伪无致命问题；
@@ -308,30 +296,22 @@ docs/11_Backtest_Falsification_Report.md
 交易记录模板完成。
 ```
 
-实盘初期必须：
-
-```text
-只做 1 手；
-每日交易次数受限；
-达到亏损上限立即停止；
-不因盈利扩大风险；
-不因亏损报复交易。
-```
-
 ---
 
-## 9. 当前下一步
+## 12. 当前下一步
 
 当前下一步：
 
 ```text
-1. 基于 docs/05_Product_Filter.md 建立候选品种筛选表；
-2. 收集候选品种的合约规格、保证金、手续费和流动性信息；
-3. 用交易许可模块测算 10,000 元和 20,000 元账户下的品种可研究性。
+1. 继续验证和完善 docs/04_Product_Evaluation_Formula.md 中的公式；
+2. 扩展 TradingPlanet 读取覆盖更多品种；
+3. 在 CLI 中增加更多输出格式选项。
 ```
+
+> CSV 批量输入、多场景展开、ATR 测算等功能属于未来阶段，不在当前任务范围。
 
 ---
 
-## 10. 当前结论
+## 13. 当前结论
 
-现在先把“什么品种账户承受得起”说清楚，再谈“什么行情值得交易”。
+现在先把"给定品种和账户，一手风险是否可承受"说清楚，再谈"什么行情值得交易"。
