@@ -34,11 +34,21 @@ src/SmallFuturesLab.Cli
 核心领域模块，只保留最小模型：
 
 ```text
-RiskConfig          — 账户风险配置（资金、阈值）
-FuturesContract     — 期货合约参数（价格、乘数、保证金、手续费等）
-ProductFilter       — 过滤器（计算 → Allowed / Caution / Rejected）
-ProductFilterResult — 单个合约过滤结果
-ProductFilterStatus — 过滤状态枚举
+Product              — 品种信息（class）
+RiskConfig           — 账户风险配置（class）
+FilterCondition      — 测算条件（class）
+ProductRisk          — 风险压力计算快照（record）
+ProductFilter        — 过滤器（class）
+ProductFilterResult  — 单个品种过滤结果（record）
+ProductFilterStatus  — Allowed / Caution / Rejected（enum）
+```
+
+流程：
+
+```text
+Product + RiskConfig + FilterCondition
+→ ProductRisk（计算快照）
+→ ProductFilterResult（输出结果）
 ```
 
 Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
@@ -53,7 +63,7 @@ Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
 读取本地交易星球下载文件；
 解析字段；
 通过 ProductSpecLookup 补齐 Multiplier / TickSize；
-生成 FuturesContract；
+生成 Product；
 保留读取错误。
 ```
 
@@ -67,9 +77,10 @@ Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
 
 ```text
 读取命令行参数；
-调用 TradingPlanet 读取本地文件；
-调用 ProductFilter 过滤；
-打印结果。
+调用 TradingPlanet 读取本地文件得到 Products；
+构造 RiskConfig 和 FilterCondition；
+调用 ProductFilter 过滤每个 Product；
+打印 ProductFilterResult。
 ```
 
 ## 运行示例

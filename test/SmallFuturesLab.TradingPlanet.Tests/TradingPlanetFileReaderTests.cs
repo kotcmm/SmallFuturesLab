@@ -5,36 +5,33 @@ namespace SmallFuturesLab.TradingPlanet.Tests;
 public sealed class TradingPlanetFileReaderTests
 {
     [Fact]
-    public void Read_Parses_Valid_Row_To_FuturesContract()
+    public void Read_Parses_Valid_Row_To_Product()
     {
         var file = Path.Combine(AppContext.BaseDirectory, "Fixtures", "trading_planet_sample.xls");
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal("MA", contract.ProductCode);
-        Assert.Equal("MA2601", contract.ContractCode);
-        Assert.Equal("甲醇", contract.ProductName);
-        Assert.Equal(2500, contract.Price);
-        Assert.Equal(10, contract.Multiplier);
-        Assert.Equal(1, contract.TickSize);
-        Assert.Equal(0.10, contract.MarginRate, 6);
-        Assert.Equal(6, contract.RoundTripFee);
-        Assert.Equal(10, contract.StopTicks);
-        Assert.Equal(2, contract.SlippageTicks);
-        Assert.Equal(1, contract.Lots);
+        var product = Assert.Single(result.Products);
+        Assert.Equal("MA", product.Code);
+        Assert.Equal("MA2601", product.Contract);
+        Assert.Equal("甲醇", product.Name);
+        Assert.Equal(2500, product.Price);
+        Assert.Equal(10, product.Multiplier);
+        Assert.Equal(1, product.TickSize);
+        Assert.Equal(0.10, product.MarginRate, 6);
+        Assert.Equal(6, product.RoundTripFee);
     }
 
     [Fact]
-    public void Read_Parses_ProductCode_And_ContractCode()
+    public void Read_Parses_Code_And_Contract()
     {
         var file = Path.Combine(AppContext.BaseDirectory, "Fixtures", "trading_planet_sample.xls");
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal("MA", contract.ProductCode);
-        Assert.Equal("MA2601", contract.ContractCode);
+        var product = Assert.Single(result.Products);
+        Assert.Equal("MA", product.Code);
+        Assert.Equal("MA2601", product.Contract);
     }
 
     [Fact]
@@ -44,8 +41,8 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal(2500, contract.Price);
+        var product = Assert.Single(result.Products);
+        Assert.Equal(2500, product.Price);
     }
 
     [Fact]
@@ -55,8 +52,8 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal(0.10, contract.MarginRate, 6);
+        var product = Assert.Single(result.Products);
+        Assert.Equal(0.10, product.MarginRate, 6);
     }
 
     [Fact]
@@ -66,8 +63,8 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal(6, contract.RoundTripFee);
+        var product = Assert.Single(result.Products);
+        Assert.Equal(6, product.RoundTripFee);
     }
 
     [Fact]
@@ -81,9 +78,9 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader(lookup).Read(file);
 
-        var contract = Assert.Single(result.Contracts);
-        Assert.Equal(20, contract.Multiplier);
-        Assert.Equal(2, contract.TickSize);
+        var product = Assert.Single(result.Products);
+        Assert.Equal(20, product.Multiplier);
+        Assert.Equal(2, product.TickSize);
     }
 
     [Fact]
@@ -94,18 +91,18 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader(lookup).Read(file);
 
-        Assert.Empty(result.Contracts);
-        Assert.Contains(result.Errors, e => e.FieldName == "ProductCode");
+        Assert.Empty(result.Products);
+        Assert.Contains(result.Errors, e => e.FieldName == "Code");
     }
 
     [Fact]
-    public void Read_Bad_Numeric_Row_Does_Not_Enter_Contracts()
+    public void Read_Bad_Numeric_Row_Does_Not_Enter_Products()
     {
         var file = Path.Combine(AppContext.BaseDirectory, "Fixtures", "trading_planet_sample.xls");
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        Assert.Single(result.Contracts);
+        Assert.Single(result.Products);
         Assert.Contains(result.Errors, e => e.FieldName == "Price");
     }
 
@@ -116,7 +113,7 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        Assert.All(result.Contracts, c => Assert.IsType<FuturesContract>(c));
-        Assert.DoesNotContain(result.Contracts, c => c.ProductCode == string.Empty);
+        Assert.All(result.Products, p => Assert.IsType<Product>(p));
+        Assert.DoesNotContain(result.Products, p => p.Code == string.Empty);
     }
 }

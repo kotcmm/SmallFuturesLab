@@ -8,32 +8,19 @@ namespace SmallFuturesLab.TradingPlanet;
 /// <summary>
 /// 交易星球下载文件读取器。
 /// 支持 Excel 可打开的 HTML 表格文件。
-/// 读取后生成 FuturesContract，不执行过滤判断。
+/// 读取后生成 Product，不执行过滤判断。
 /// </summary>
 public sealed partial class TradingPlanetFileReader
 {
     private readonly ProductSpecLookup _specLookup;
-    private readonly int _stopTicks;
-    private readonly int _slippageTicks;
-    private readonly int _lots;
 
     /// <summary>
     /// 创建交易星球文件读取器。
     /// </summary>
     /// <param name="specLookup">品种规格查找表，用于补齐 Multiplier 和 TickSize。</param>
-    /// <param name="stopTicks">默认止损 tick 数。</param>
-    /// <param name="slippageTicks">默认滑点 tick 数。</param>
-    /// <param name="lots">默认测算手数。</param>
-    public TradingPlanetFileReader(
-        ProductSpecLookup? specLookup = null,
-        int stopTicks = 10,
-        int slippageTicks = 2,
-        int lots = 1)
+    public TradingPlanetFileReader(ProductSpecLookup? specLookup = null)
     {
         _specLookup = specLookup ?? new ProductSpecLookup();
-        _stopTicks = stopTicks;
-        _slippageTicks = slippageTicks;
-        _lots = lots;
     }
 
     /// <summary>
@@ -53,7 +40,7 @@ public sealed partial class TradingPlanetFileReader
 
         var text = File.ReadAllText(filePath);
         var rows = ExtractRows(text);
-        var contracts = new List<FuturesContract>();
+        var products = new List<Product>();
         var errors = new List<TradingPlanetReadError>();
         var currentExchange = string.Empty;
 
@@ -84,21 +71,21 @@ public sealed partial class TradingPlanetFileReader
                 continue;
             }
 
-            var contract = TryParseDataRow(rowNumber, currentExchange, cells, errors);
-            if (contract is not null)
+            var product = TryParseDataRow(rowNumber, currentExchange, cells, errors);
+            if (product is not null)
             {
-                contracts.Add(contract);
+                products.Add(product);
             }
         }
 
         return new TradingPlanetReadResult
         {
-            Contracts = contracts,
+            Products = products,
             Errors = errors,
         };
     }
 
-    private FuturesContract? TryParseDataRow(
+    private Product? TryParseDataRow(
         int rowNumber,
         string exchange,
         IReadOnlyList<string> cells,
@@ -110,13 +97,13 @@ public sealed partial class TradingPlanetFileReader
 
         if (string.IsNullOrWhiteSpace(contractCode))
         {
-            AddError(errors, rowNumber, "ContractCode", "合约代码不能为空");
+            AddError(errors, rowNumber, "Contract", "合约代码不能为空");
             return null;
         }
 
         if (string.IsNullOrWhiteSpace(productCode))
         {
-            AddError(errors, rowNumber, "ProductCode", "无法从合约代码中解析品种代码");
+            AddError(errors, rowNumber, "Code", "无法从合约代码中解析品种代码");
             return null;
         }
 
@@ -132,24 +119,21 @@ public sealed partial class TradingPlanetFileReader
         var spec = _specLookup.Find(productCode);
         if (spec is null)
         {
-            AddError(errors, rowNumber, "ProductCode", $"找不到品种 {productCode} 的规格（Multiplier/TickSize）");
+            AddError(errors, rowNumber, "Code", $"找不到品种 {productCode} 的规格（Multiplier/TickSize）");
             return null;
         }
 
-        return new FuturesContract
+        return new Product
         {
             Exchange = exchange,
-            ProductCode = productCode,
-            ContractCode = contractCode,
-            ProductName = NormalizeProductName(productName),
+            Code = productCode,
+            Contract = contractCode,
+            Name = NormalizeProductName(productName),
             Price = price.Value,
             Multiplier = spec.Multiplier,
             TickSize = spec.TickSize,
             MarginRate = marginRate.Value,
             RoundTripFee = roundTripFee.Value,
-            StopTicks = _stopTicks,
-            SlippageTicks = _slippageTicks,
-            Lots = _lots,
         };
     }
 

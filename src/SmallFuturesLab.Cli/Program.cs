@@ -31,7 +31,7 @@ if (string.IsNullOrWhiteSpace(input)
     return 1;
 }
 
-var reader = new TradingPlanetFileReader(stopTicks: stopTicks, slippageTicks: slippageTicks, lots: lots);
+var reader = new TradingPlanetFileReader();
 var readResult = reader.Read(input);
 
 foreach (var error in readResult.Errors)
@@ -41,13 +41,19 @@ foreach (var error in readResult.Errors)
 
 var filter = new ProductFilter();
 var config = new RiskConfig { AccountEquity = accountEquity };
-
-foreach (var contract in readResult.Contracts)
+var condition = new FilterCondition
 {
-    var result = filter.Evaluate(contract, config);
+    StopTicks = stopTicks,
+    SlippageTicks = slippageTicks,
+    Lots = lots,
+};
 
-    Console.WriteLine($"品种: {result.ProductCode} 合约: {result.ContractCode}");
-    Console.WriteLine($"  价格: {contract.Price:F2}");
+foreach (var product in readResult.Products)
+{
+    var result = filter.Evaluate(product, config, condition);
+
+    Console.WriteLine($"品种: {result.Code} 合约: {result.Contract}");
+    Console.WriteLine($"  价格: {product.Price:F2}");
     Console.WriteLine($"  保证金金额: {result.MarginMoney:F2}");
     Console.WriteLine($"  总风险金额: {result.TotalRiskMoney:F2}");
     Console.WriteLine($"  风险比例: {result.RiskRate:P2}");

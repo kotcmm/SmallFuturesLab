@@ -1,15 +1,15 @@
 namespace SmallFuturesLab.Core;
 
 /// <summary>
-/// 单个合约的过滤结果。
+/// 单个品种的过滤输出结果。
 /// </summary>
 public sealed record ProductFilterResult
 {
     /// <summary>品种代码。</summary>
-    public string ProductCode { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
 
     /// <summary>合约代码。</summary>
-    public string ContractCode { get; init; } = string.Empty;
+    public string Contract { get; init; } = string.Empty;
 
     /// <summary>总风险占账户权益比例。</summary>
     public double RiskRate { get; init; }
