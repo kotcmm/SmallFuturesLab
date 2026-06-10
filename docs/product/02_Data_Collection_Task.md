@@ -4,68 +4,49 @@
 
 ---
 
+> **说明：本文档描述的是 CSV 批量采集和计算流程，属于未来阶段规划。**
+>
+> 当前优先使用交易星球单文件 + CLI 进行测算。
+>
+> CSV 批量输入、多场景自动展开、公式字段批量计算等功能属于未来阶段。
+
+---
+
 ## 1. 文档目的
 
 本文档定义第一批候选品种的数据采集任务。
 
-它用于指导人工或本地 AI 编码助手采集 `docs/product/01_Candidate_Product_Batch1.md` 中列出的品种数据，并填写到 `templates/product_filter_template.csv` 的副本中。
+它用于指导人工或本地 AI 编码助手采集 `docs/product/01_Candidate_Product_Batch1.md` 中列出的品种数据。
 
 本文档不输出品种筛选结论。
 
-本文档只定义：
+---
+
+## 2. 当前状态
+
+当前优先的数据采集方式：
 
 ```text
-采集哪些字段；
-哪些字段来自外部数据；
-哪些字段由公式计算；
-哪些字段由人工分级；
-账户规模如何作为测算维度；
-采集完成后如何验收。
+1. 从交易星球下载手续费和保证金表格（HTML .xls 文件）；
+2. 解析品种数据；
+3. 使用 CLI 命令行工具运行测算；
+4. 查看 CLI 输出结果。
+```
+
+未来阶段实现：
+
+```text
+CSV 批量输入和校验；
+多止损场景自动展开；
+多账户规模自动展开；
+公式字段批量计算；
+计算后 CSV 输出；
+Markdown 汇总报告生成。
 ```
 
 ---
 
-## 2. 正式采集前闸门
-
-本文档描述最终采集任务，但正式创建：
-
-```text
-data/product_filter/product_filter_batch1.csv
-```
-
-之前，必须先完成：
-
-```text
-docs/product/05_Batch1_Data_Collection_Gate.md
-```
-
-中的采集前检查清单。
-
-如果检查清单未完成，不应创建正式 batch1 数据文件，不应生成 calculated CSV，也不应生成 summary report。
-
----
-
-## 3. 输入文件
-
-采集任务输入：
-
-```text
-docs/05_Product_Filter.md
-docs/product/01_Candidate_Product_Batch1.md
-templates/product_filter_template.csv
-```
-
-输出文件建议另存为：
-
-```text
-data/product_filter/product_filter_batch1.csv
-```
-
-如果 `data/product_filter/` 目录不存在，可以在执行采集任务时创建。
-
----
-
-## 4. 采集范围
+## 3. 采集范围
 
 第一批采集范围以 `docs/product/01_Candidate_Product_Batch1.md` 为准。
 
@@ -83,36 +64,9 @@ data/product_filter/product_filter_batch1.csv
 
 ---
 
-## 5. 账户规模建模
+## 4. 账户规模建模
 
 账户规模是测算维度，不是固定字段名。
-
-模板使用：
-
-```text
-AccountEquity
-```
-
-表示当前这一行测算所使用的账户权益。
-
-不要在模型或 CSV 中固化：
-
-```text
-RiskRate10k
-RiskRate20k
-MarginRate10k
-MarginRate20k
-Result10k
-Result20k
-```
-
-原因：
-
-```text
-1 万和 2 万只是当前默认测算场景；
-未来可能增加 3 万、4 万、5 万或其他账户规模；
-账户规模变化不应该导致代码模型、CSV 表头和测试大面积修改。
-```
 
 默认第一轮账户规模：
 
@@ -121,15 +75,13 @@ Result20k
 20,000 元。
 ```
 
-如果后续需要测算 30,000 元、40,000 元、50,000 元，只需要为对应 `AccountEquity` 增加记录行，不修改字段结构。
+如果后续需要测算 30,000 元、40,000 元、50,000 元，只需要增加对应测算记录，不修改领域模型。
 
 ---
 
-## 6. 字段分组
+## 5. 字段分组
 
-模板字段分为四类。
-
-### 6.1 外部采集字段
+### 5.1 外部采集字段
 
 这些字段必须从交易所、期货公司、行情软件或其他明确来源获得：
 
@@ -142,26 +94,20 @@ Price
 Multiplier
 TickSize
 MarginRate
-RoundTripFeePerLot
-TypicalAtr
-LiquidityLevel
-BookContinuityLevel
-RolloverClarity
+RoundTripFee
 DataDate
 DataSource
 ```
 
 这些字段不得凭空猜测。
 
----
-
-### 6.2 初始假设字段
+### 5.2 初始假设字段
 
 这些字段允许先使用统一假设，但必须明确记录：
 
 ```text
 SlippageTicks
-StopDistance
+StopTicks
 AccountEquity
 ```
 
@@ -173,14 +119,12 @@ AccountEquity
 排除对照品种：SlippageTicks = 2 到 5
 ```
 
-StopDistance 至少生成五类：
+StopTicks 至少生成三类：
 
 ```text
 3 tick
 5 tick
 10 tick
-0.5 ATR
-1.0 ATR
 ```
 
 AccountEquity 第一轮至少生成两类：
@@ -190,16 +134,13 @@ AccountEquity 第一轮至少生成两类：
 20000
 ```
 
----
-
-### 6.3 公式计算字段
+### 5.3 公式计算字段
 
 这些字段由公式计算，不应人工手填：
 
 ```text
 TickValue
 MarginPerLot
-AtrMoneyPerLot
 StopRiskMoney
 SlippageMoney
 CostMoney
@@ -209,11 +150,9 @@ MarginRateOfEquity
 CostRatio
 ```
 
-公式以 `docs/05_Product_Filter.md` 和 `docs/04_Trade_Permission_Pipeline.md` 为准。
+公式以 `docs/04_Product_Evaluation_Formula.md` 为准。
 
----
-
-### 6.4 结论字段
+### 5.4 结论字段
 
 这些字段必须基于测算结果填写：
 
@@ -230,16 +169,16 @@ Caution
 Rejected
 ```
 
-Reasons 必须写清楚原因，不能只写“通过”或“不适合”。
+Reasons 必须写清楚原因，不能只写"通过"或"不适合"。
 
 ---
 
-## 7. 每个品种的行数要求
+## 6. 每个品种的行数要求
 
 每个品种至少生成：
 
 ```text
-5 个止损场景 × 2 个账户规模 = 10 行测算记录。
+3 个止损场景 × 2 个账户规模 = 6 行测算记录。
 ```
 
 止损场景：
@@ -247,9 +186,7 @@ Reasons 必须写清楚原因，不能只写“通过”或“不适合”。
 ```text
 3 tick 止损；
 5 tick 止损；
-10 tick 止损；
-0.5 ATR 止损；
-1.0 ATR 止损。
+10 tick 止损。
 ```
 
 账户规模：
@@ -259,37 +196,9 @@ AccountEquity = 10000；
 AccountEquity = 20000。
 ```
 
-如果后续加入新的账户规模，例如 30,000 元，只增加对应行：
-
-```text
-5 个止损场景 × 3 个账户规模 = 15 行测算记录。
-```
-
-不修改 CSV 表头，不修改领域模型。
-
 ---
 
-## 8. 采集顺序
-
-按以下顺序执行：
-
-```text
-1. 完成 docs/product/05_Batch1_Data_Collection_Gate.md 中的采集前检查清单；
-2. 复制 templates/product_filter_template.csv；
-3. 保存为 data/product_filter/product_filter_batch1.csv；
-4. 按候选品种清单逐个填写外部采集字段；
-5. 为每个品种生成 StopDistance 场景；
-6. 为每个 StopDistance 场景生成 AccountEquity 场景；
-7. 计算所有公式字段；
-8. 使用交易许可逻辑得出 Result；
-9. 填写 Reasons；
-10. 检查 DataDate 和 DataSource；
-11. 按 AccountEquity 汇总候选白名单、谨慎观察列表和排除列表。
-```
-
----
-
-## 9. 数据来源记录要求
+## 7. 数据来源记录要求
 
 每条记录必须有 `DataDate` 和 `DataSource`。
 
@@ -304,37 +213,11 @@ DataSource 应写明来源类型，例如：
 第三方资料临时参考。
 ```
 
-如果使用第三方资料，Reasons 中必须说明该记录需要后续复核。
+如果使用第三方资料，必须说明该记录需要后续复核。
 
 ---
 
-## 10. 人工分级口径
-
-LiquidityLevel、BookContinuityLevel、RolloverClarity 先允许人工分级。
-
-只允许以下值：
-
-```text
-Good
-Medium
-Poor
-Unknown
-```
-
-含义：
-
-```text
-Good    = 良好；
-Medium  = 一般；
-Poor    = 较差；
-Unknown = 暂无数据。
-```
-
-如果任一字段为 `Poor` 或 `Unknown`，该记录不能输出 `Allowed`。
-
----
-
-## 11. 验收检查
+## 8. 验收检查
 
 采集完成后，必须检查：
 
@@ -345,16 +228,13 @@ AccountEquity > 0；
 Result 只包含 Allowed / Caution / Rejected；
 每条记录都有 DataDate；
 每条记录都有 DataSource；
-每个品种至少覆盖 5 个止损场景；
-每个品种至少覆盖 10000 和 20000 两个账户规模；
 Reasons 非空；
-没有未经说明的数据来源；
-没有把 Unknown 当作 Allowed 的核心依据。
+没有未经说明的数据来源。
 ```
 
 ---
 
-## 12. 当前不做什么
+## 9. 当前不做什么
 
 本任务不做：
 
@@ -371,11 +251,8 @@ Reasons 非空；
 
 ---
 
-## 13. 后续输出
+## 10. 当前结论
 
-采集完成后，应形成：
+当前阶段优先使用交易星球下载文件 + CLI 进行单文件测算。
 
-```text
-data/product_filter/product_filter_batch1.csv
-reports/product_filter_batch1_summary.md
-```
+CSV 批量采集和自动化计算属于未来阶段，待测算公式稳定后再扩展。
