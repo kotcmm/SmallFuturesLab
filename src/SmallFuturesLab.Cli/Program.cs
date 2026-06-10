@@ -39,9 +39,8 @@ foreach (var error in readResult.Errors)
     Console.Error.WriteLine($"读取错误 行{error.RowNumber} {error.FieldName}: {error.Reason}");
 }
 
-var filter = new ProductFilter();
-var config = new RiskConfig { AccountEquity = accountEquity };
-var condition = new FilterCondition
+var accountConfig = new AccountRiskConfig { AccountEquity = accountEquity };
+var riskConfig = new ProductRiskConfig
 {
     StopTicks = stopTicks,
     SlippageTicks = slippageTicks,
@@ -50,17 +49,17 @@ var condition = new FilterCondition
 
 foreach (var product in readResult.Products)
 {
-    var result = filter.Evaluate(product, config, condition);
+    var eval = new ProductEvaluation(product, accountEquity, riskConfig);
+    var status = eval.Evaluate(accountConfig);
 
-    Console.WriteLine($"品种: {result.Code} 合约: {result.Contract}");
+    Console.WriteLine($"品种: {product.ProductId} 合约: {product.InstrumentId}");
     Console.WriteLine($"  价格: {product.Price:F2}");
-    Console.WriteLine($"  保证金金额: {result.MarginMoney:F2}");
-    Console.WriteLine($"  总风险金额: {result.TotalRiskMoney:F2}");
-    Console.WriteLine($"  风险比例: {result.RiskRate:P2}");
-    Console.WriteLine($"  保证金比例: {result.MarginRate:P2}");
-    Console.WriteLine($"  成本比例: {result.CostRatio:P2}");
-    Console.WriteLine($"  状态: {result.Status}");
-    Console.WriteLine($"  原因: {string.Join("；", result.Reasons)}");
+    Console.WriteLine($"  保证金金额: {eval.MarginPerLot * riskConfig.Lots:F2}");
+    Console.WriteLine($"  总风险金额: {eval.TotalRiskMoney:F2}");
+    Console.WriteLine($"  风险比例: {eval.RiskRate:P2}");
+    Console.WriteLine($"  保证金比例: {eval.MarginRateOfEquity:P2}");
+    Console.WriteLine($"  成本比例: {eval.CostRatio:P2}");
+    Console.WriteLine($"  状态: {status}");
     Console.WriteLine();
 }
 

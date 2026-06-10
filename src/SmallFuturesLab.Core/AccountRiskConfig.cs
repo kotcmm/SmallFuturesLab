@@ -4,7 +4,7 @@ namespace SmallFuturesLab.Core;
 /// 小资金品种过滤配置。
 /// 不是完整风控系统，只是当前品种过滤器使用的账户权益和阈值配置。
 /// </summary>
-public sealed class RiskConfig
+public sealed class AccountRiskConfig
 {
     /// <summary>
     /// 账户权益。必须大于 0。

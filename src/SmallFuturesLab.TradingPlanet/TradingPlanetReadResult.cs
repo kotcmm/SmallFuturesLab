@@ -8,7 +8,7 @@ namespace SmallFuturesLab.TradingPlanet;
 public sealed record TradingPlanetReadResult
 {
     /// <summary>成功读取的品种列表。</summary>
-    public IReadOnlyList<Product> Products { get; init; } = Array.Empty<Product>();
+    public IReadOnlyList<ProductInfo> Products { get; init; } = Array.Empty<ProductInfo>();
 
     /// <summary>读取错误。</summary>
     public IReadOnlyList<TradingPlanetReadError> Errors { get; init; } = Array.Empty<TradingPlanetReadError>();

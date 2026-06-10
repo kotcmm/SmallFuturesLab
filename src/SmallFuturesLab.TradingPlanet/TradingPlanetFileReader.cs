@@ -1,7 +1,7 @@
+using SmallFuturesLab.Core;
 using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
-using SmallFuturesLab.Core;
 
 namespace SmallFuturesLab.TradingPlanet;
 
@@ -40,7 +40,7 @@ public sealed partial class TradingPlanetFileReader
 
         var text = File.ReadAllText(filePath);
         var rows = ExtractRows(text);
-        var products = new List<Product>();
+        var products = new List<ProductInfo>();
         var errors = new List<TradingPlanetReadError>();
         var currentExchange = string.Empty;
 
@@ -85,7 +85,7 @@ public sealed partial class TradingPlanetFileReader
         };
     }
 
-    private Product? TryParseDataRow(
+    private ProductInfo? TryParseDataRow(
         int rowNumber,
         string exchange,
         IReadOnlyList<string> cells,
@@ -123,11 +123,11 @@ public sealed partial class TradingPlanetFileReader
             return null;
         }
 
-        return new Product
+        return new ProductInfo
         {
             Exchange = exchange,
-            Code = productCode,
-            Contract = contractCode,
+            ProductId = productCode,
+            InstrumentId = contractCode,
             Name = NormalizeProductName(productName),
             Price = price.Value,
             Multiplier = spec.Multiplier,
