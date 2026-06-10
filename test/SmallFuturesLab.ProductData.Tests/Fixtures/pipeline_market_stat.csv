@@ -1,4 +1,0 @@
-Exchange,ProductName,ProductCode,ContractCode,Price,TypicalAtr,Volume,OpenInterest,LiquidityLevel,BookContinuityLevel,RolloverClarity,DataDate,DataSource,NeedsReview
-CZCE,甲醇,MA,MA2501,2500,20,123456,500000,Good,Good,Good,2024-01-01,测试行情统计,true
-CZCE,螺纹钢,RB,RB2501,3500,15,789012,600000,Medium,Medium,Medium,2024-01-01,测试行情统计,true
-CZCE,甲醇,MA,MA2502,2500,20,123456,500000,Good,Good,Good,2024-01-01,测试行情统计,true

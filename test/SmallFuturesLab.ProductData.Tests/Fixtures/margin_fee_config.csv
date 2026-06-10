@@ -1,3 +1,0 @@
-Exchange,ProductCode,MarginRate,RoundTripFeePerLot,DataDate,DataSource,NeedsReview
-CZCE,MA,0.10,6,2024-01-01,人工维护,true
-SHFE,RB,0.12,9,2024-01-01,人工维护,false

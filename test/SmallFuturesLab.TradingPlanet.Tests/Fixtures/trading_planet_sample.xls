@@ -1,0 +1,16 @@
+<html>
+<body>
+<table>
+<tr><td>郑州商品交易所</td></tr>
+<tr>
+<td>合约名称</td><td>合约代码</td><td>现价</td><td>成交量</td><td>买开保证金%</td><td>卖开保证金%</td><td>保证金/元</td><td>开仓手续费</td><td>平昨手续费</td><td>平今手续费</td><td>开+平/元</td><td>每跳毛利</td><td>每跳净利</td><td>备注</td>
+</tr>
+<tr>
+<td>甲醇(2601)</td><td>MA2601</td><td>2500</td><td>123456</td><td>10%</td><td>10%</td><td>2500</td><td>3</td><td>3</td><td>3</td><td>6</td><td>10</td><td>4</td><td>测试备注</td>
+</tr>
+<tr>
+<td>坏数据</td><td>BAD2601</td><td>bad</td><td>1</td><td>10%</td><td>10%</td><td>2500</td><td>3</td><td>3</td><td>3</td><td>6</td><td>10</td><td>4</td><td>错误行</td>
+</tr>
+</table>
+</body>
+</html>
