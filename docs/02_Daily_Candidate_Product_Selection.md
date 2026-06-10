@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-日内候选品种筛选，是在每天开盘后，用账户风险、合约参数和开盘市场数据，筛出当天值得关注的少数候选品种。
+日内候选品种筛选，是开盘前用合约资料、费用资料、保证金资料和历史行情统计，筛出当天值得观察的少数候选品种。
 
 输出结果：
 
@@ -10,57 +10,77 @@
 候选品种列表
 ```
 
-每个候选品种必须能回答三个问题：
-
-1. 一手风险是否能被账户承受；
-2. 成本是否不会吞噬 R；
-3. 当天波动空间是否值得继续观察。
-
----
-
-## 2. 核心原则
-
-先看能不能做，再看值不值得做。
-
-判断顺序：
+每个候选品种只回答一个问题：
 
 ```text
-账户风险 → 保证金 → 一手风险 → 成本占比 → 流动性 → 波动空间 → 候选排序
-```
-
-核心约束：
-
-```text
-TradeR <= AccountR
-c <= c_max
+今天是否值得进入盘中观察池
 ```
 
 ---
 
-## 3. 输入参数
+## 2. 核心边界
 
-输入参数分四类。
+品种筛选只判断“品种是否值得观察”。
 
-### 3.1 账户配置
+单笔交易风险由具体入场价和止损价决定，属于后续交易结构阶段。
 
-| 参数 | 含义 | 示例 |
-|---|---|---:|
-| AccountEquity | 账户权益 | 50,000 |
-| RiskPercentPerTrade | 单笔风险比例 | 0.5% |
-| MaxMarginUsagePercent | 单品种最大保证金占用比例 | 25% |
-| CostMaxR | 成本上限 | 0.20R |
-| MinExpectedRewardR | 最低期望盈利空间 | 2.5R |
-| MaxCandidates | 最多候选品种数 | 3 |
-
-账户风险上限：
+因此，本文件不计算：
 
 ```text
-AccountR = AccountEquity × RiskPercentPerTrade
+TradeR
+入场价
+止损价
+允许手数
+单笔期望
 ```
+
+本文件只计算品种层面的可观察性。
 
 ---
 
-### 3.2 合约静态参数
+## 3. 筛选时间
+
+筛选时间：
+
+```text
+开盘前
+```
+
+可使用的数据：
+
+1. 合约静态参数；
+2. 手续费；
+3. 保证金；
+4. 昨日结算价；
+5. 昨日成交量；
+6. 昨日持仓量；
+7. 最近 N 日波动统计；
+8. 最近 N 日成交量统计。
+
+开盘前没有盘口、买一卖一、开盘成交量和当日波动数据。
+
+---
+
+## 4. 输入参数
+
+输入参数分三类。
+
+### 4.1 上游风险约束
+
+这些参数来自 `01_Positive_Expectancy_and_Risk_Constraints.md` 的结果。
+
+| 参数 | 含义 |
+|---|---|
+| AccountR | 账户单笔风险上限 |
+| MaxMarginUsagePercent | 单品种最大保证金占用比例 |
+| MaxFeePressureR | 最大费用压力 |
+| MaxCandidates | 最多候选品种数 |
+
+这里使用它们作为筛选约束，不在本文件重新定义账户配置。
+
+---
+
+### 4.2 合约与费用资料
 
 | 参数 | 含义 |
 |---|---|
@@ -70,6 +90,7 @@ AccountR = AccountEquity × RiskPercentPerTrade
 | TickSize | 最小变动价位 |
 | MarginRate | 保证金比例 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
+| PreviousSettlementPrice | 昨日结算价 |
 
 一跳价值：
 
@@ -77,65 +98,37 @@ AccountR = AccountEquity × RiskPercentPerTrade
 TickValue = TickSize × Multiplier
 ```
 
+一手名义价值：
+
+```text
+OneLotNotional = PreviousSettlementPrice × Multiplier
+```
+
+一手保证金：
+
+```text
+OneLotMargin = OneLotNotional × MarginRate
+```
+
 ---
 
-### 3.3 开盘市场数据
+### 4.3 历史统计资料
 
 | 参数 | 含义 |
 |---|---|
-| OpenPrice | 开盘价或筛选时最新价 |
-| BidPrice1 | 买一价 |
-| AskPrice1 | 卖一价 |
-| OpeningVolume | 开盘观察窗口成交量 |
-| ExpectedIntradayMoveTicks | 预估日内可用波动空间，单位是 tick |
+| AverageDailyVolumeN | 最近 N 日平均成交量 |
+| AverageOpenInterestN | 最近 N 日平均持仓量 |
+| AverageTrueRangeN | 最近 N 日平均真实波幅 |
+| MedianIntradayRangeN | 最近 N 日日内振幅中位数 |
+| LimitUpDownRatio | 近期涨跌停或接近涨跌停的比例 |
 
-买卖价差：
-
-```text
-SpreadTicks = (AskPrice1 - BidPrice1) / TickSize
-```
+这些数据来自历史行情统计，不来自当天开盘后的盘口。
 
 ---
 
-### 3.4 风险测算模板
+## 5. 推算过程
 
-| 参数 | 含义 | 示例 |
-|---|---|---:|
-| TestStopTicks | 测算用止损距离，单位是 tick | 20 |
-| ExpectedSlippageTicksRoundTrip | 预估开平合计滑点，单位是 tick | 2 |
-| MaxSpreadTicks | 最大允许买卖价差，单位是 tick | 2 |
-| MinOpeningVolume | 最低开盘观察窗口成交量 | 1000 |
-
-风险测算模板用于日内候选品种初筛。
-
-后续每一笔具体交易仍然使用自己的入场价和止损价重新计算 `TradeR`。
-
----
-
-## 4. 推算过程
-
-### 4.1 账户风险上限
-
-```text
-AccountR = AccountEquity × RiskPercentPerTrade
-```
-
-示例：
-
-```text
-AccountR = 50,000 × 0.5%
-AccountR = 250
-```
-
----
-
-### 4.2 一手保证金
-
-```text
-OneLotMargin = OpenPrice × Multiplier × MarginRate
-```
-
-保证金占比：
+### 5.1 保证金压力
 
 ```text
 MarginUsagePercent = OneLotMargin / AccountEquity
@@ -147,139 +140,142 @@ MarginUsagePercent = OneLotMargin / AccountEquity
 MarginUsagePercent <= MaxMarginUsagePercent
 ```
 
----
+说明：
 
-### 4.3 一手价格止损风险
-
-```text
-OneLotPriceRisk = TestStopTicks × TickValue
-```
+> 保证金过高的品种会挤压容错空间。
 
 ---
 
-### 4.4 一手预估成本
+### 5.2 最小价格颗粒度
 
 ```text
-OneLotEstimatedCost = RoundTripFeePerLot + ExpectedSlippageTicksRoundTrip × TickValue
+TickValue = TickSize × Multiplier
 ```
+
+筛选含义：
+
+> TickValue 越大，最小价格跳动对小资金越不友好。
+
+本步骤不把 TickValue 等同于单笔风险。
 
 ---
 
-### 4.5 一手计划风险
+### 5.3 费用压力
+
+开盘前没有具体入场止损，所以不能计算真实成本占 `TradeR` 的比例。
+
+这里用 `AccountR` 做保守压力测算：
 
 ```text
-OneLotTradeR = OneLotPriceRisk + OneLotEstimatedCost
-```
-
-允许手数：
-
-```text
-AllowedLots = floor(AccountR / OneLotTradeR)
+FeePressureR = RoundTripFeePerLot / AccountR
 ```
 
 筛选规则：
 
 ```text
-AllowedLots >= 1
+FeePressureR <= MaxFeePressureR
 ```
+
+说明：
+
+> 如果一手开平手续费相对 AccountR 已经过高，后续交易结构很难形成正期望。
 
 ---
 
-### 4.6 成本占比
+### 5.4 历史流动性
+
+成交量过滤：
 
 ```text
-CostR = OneLotEstimatedCost / OneLotTradeR
+AverageDailyVolumeN >= MinAverageDailyVolumeN
+```
+
+持仓量过滤：
+
+```text
+AverageOpenInterestN >= MinAverageOpenInterestN
+```
+
+说明：
+
+> 流动性不足会放大滑点，降低执行稳定性。
+
+---
+
+### 5.5 历史波动空间
+
+用历史波动衡量该品种是否有足够日内空间。
+
+```text
+IntradaySpaceValue = MedianIntradayRangeN × Multiplier
+```
+
+波动空间压力：
+
+```text
+SpaceToAccountR = IntradaySpaceValue / AccountR
 ```
 
 筛选规则：
 
 ```text
-CostR <= CostMaxR
+SpaceToAccountR >= MinSpaceToAccountR
 ```
+
+说明：
+
+> 如果历史日内波动空间太小，即使能下单，也可能无法覆盖风险和成本。
 
 ---
 
-### 4.7 流动性筛选
+### 5.6 异常波动排除
 
-买卖价差筛选：
-
-```text
-SpreadTicks <= MaxSpreadTicks
-```
-
-成交量筛选：
+近期涨跌停或接近涨跌停比例过高时，品种稳定性较差。
 
 ```text
-OpeningVolume >= MinOpeningVolume
+LimitUpDownRatio <= MaxLimitUpDownRatio
 ```
+
+说明：
+
+> 小资金不适合优先观察容易被极端波动影响的品种。
 
 ---
 
-### 4.8 波动空间筛选
-
-最低目标盈利金额：
-
-```text
-RequiredProfitAmount = MinExpectedRewardR × OneLotTradeR
-```
-
-折算成需要移动的 tick 数：
-
-```text
-RequiredMoveTicks = ceil(RequiredProfitAmount / TickValue)
-```
-
-波动空间比例：
-
-```text
-SpaceRatio = ExpectedIntradayMoveTicks / RequiredMoveTicks
-```
-
-筛选规则：
-
-```text
-SpaceRatio >= 1
-```
-
-含义：
-
-> 预估日内波动空间至少要覆盖最低期望盈利空间。
-
----
-
-## 5. 筛选状态
+## 6. 筛选状态
 
 每个品种输出一个状态。
 
 | 状态 | 含义 |
 |---|---|
 | Rejected | 不满足硬约束 |
-| Candidate | 通过硬约束，可以进入候选列表 |
+| Candidate | 通过硬约束，可以进入观察池 |
 | Preferred | 通过硬约束，并且排序靠前 |
 
 拒绝原因使用明确字段记录。
 
 | 原因 | 含义 |
 |---|---|
-| MarginTooHigh | 保证金占比过高 |
-| RiskTooHigh | 一手计划风险超过 AccountR |
-| CostTooHigh | 成本占比超过上限 |
-| SpreadTooWide | 买卖价差过大 |
-| LiquidityTooLow | 开盘流动性不足 |
-| SpaceTooSmall | 预估波动空间不足 |
+| MarginTooHigh | 保证金压力过高 |
+| TickValueTooLarge | 一跳价值过大 |
+| FeePressureTooHigh | 费用压力过高 |
+| LiquidityTooLow | 历史流动性不足 |
+| SpaceTooSmall | 历史波动空间不足 |
+| ExtremeMoveTooFrequent | 极端波动过多 |
 
 ---
 
-## 6. 候选排序
+## 7. 候选排序
 
 通过硬约束后，再排序。
 
 排序优先级：
 
-1. `SpaceRatio` 越高越靠前；
-2. `CostR` 越低越靠前；
+1. `SpaceToAccountR` 越高越靠前；
+2. `FeePressureR` 越低越靠前；
 3. `MarginUsagePercent` 越低越靠前；
-4. `OpeningVolume` 越高越靠前。
+4. `AverageDailyVolumeN` 越高越靠前；
+5. `AverageOpenInterestN` 越高越靠前。
 
 最终只保留：
 
@@ -295,7 +291,7 @@ MaxCandidates = 3
 
 ---
 
-## 7. 输出字段
+## 8. 输出字段
 
 日内候选品种筛选结果至少包含以下字段。
 
@@ -305,62 +301,53 @@ MaxCandidates = 3
 | Status | 筛选状态 |
 | RejectReason | 拒绝原因 |
 | AccountR | 账户单笔风险上限 |
-| OneLotMargin | 一手保证金 |
-| MarginUsagePercent | 保证金占比 |
+| PreviousSettlementPrice | 昨日结算价 |
 | TickValue | 一跳价值 |
-| OneLotTradeR | 一手计划风险 |
-| AllowedLots | 允许手数 |
-| CostR | 成本占比 |
-| SpreadTicks | 买卖价差 |
-| OpeningVolume | 开盘成交量 |
-| RequiredMoveTicks | 达到目标盈利需要移动的 tick 数 |
-| ExpectedIntradayMoveTicks | 预估日内可用波动空间 |
-| SpaceRatio | 波动空间比例 |
+| OneLotMargin | 一手保证金 |
+| MarginUsagePercent | 保证金压力 |
+| RoundTripFeePerLot | 单手开平合计手续费 |
+| FeePressureR | 费用压力 |
+| AverageDailyVolumeN | 最近 N 日平均成交量 |
+| AverageOpenInterestN | 最近 N 日平均持仓量 |
+| MedianIntradayRangeN | 最近 N 日日内振幅中位数 |
+| SpaceToAccountR | 历史波动空间相对 AccountR 的倍数 |
+| LimitUpDownRatio | 近期极端波动比例 |
 
 ---
 
-## 8. 完整算例
+## 9. 完整算例
 
-账户配置：
+上游风险约束：
 
 | 参数 | 数值 |
 |---|---:|
-| AccountEquity | 50,000 |
-| RiskPercentPerTrade | 0.5% |
+| AccountR | 250 |
 | MaxMarginUsagePercent | 25% |
-| CostMaxR | 0.20R |
-| MinExpectedRewardR | 2.5R |
+| MaxFeePressureR | 0.20R |
+| MinSpaceToAccountR | 2.5 |
+| MaxLimitUpDownRatio | 10% |
 | MaxCandidates | 3 |
 
-风险测算模板：
+历史过滤阈值：
 
 | 参数 | 数值 |
 |---|---:|
-| TestStopTicks | 20 |
-| ExpectedSlippageTicksRoundTrip | 2 |
-| MaxSpreadTicks | 2 |
-| MinOpeningVolume | 1000 |
-
-账户风险上限：
-
-```text
-AccountR = 50,000 × 0.5%
-AccountR = 250
-```
+| MinAverageDailyVolumeN | 100,000 |
+| MinAverageOpenInterestN | 50,000 |
 
 候选品种 A：
 
 | 参数 | 数值 |
 |---|---:|
-| OpenPrice | 3000 |
+| PreviousSettlementPrice | 3000 |
 | Multiplier | 10 |
 | TickSize | 1 |
 | MarginRate | 10% |
 | RoundTripFeePerLot | 10 |
-| BidPrice1 | 2999 |
-| AskPrice1 | 3000 |
-| OpeningVolume | 5000 |
-| ExpectedIntradayMoveTicks | 80 |
+| AverageDailyVolumeN | 300,000 |
+| AverageOpenInterestN | 180,000 |
+| MedianIntradayRangeN | 80 |
+| LimitUpDownRatio | 2% |
 
 推算：
 
@@ -368,15 +355,9 @@ AccountR = 250
 TickValue = 1 × 10 = 10
 OneLotMargin = 3000 × 10 × 10% = 3000
 MarginUsagePercent = 3000 / 50000 = 6%
-OneLotPriceRisk = 20 × 10 = 200
-OneLotEstimatedCost = 10 + 2 × 10 = 30
-OneLotTradeR = 200 + 30 = 230
-AllowedLots = floor(250 / 230) = 1
-CostR = 30 / 230 = 0.13R
-SpreadTicks = (3000 - 2999) / 1 = 1
-RequiredProfitAmount = 2.5 × 230 = 575
-RequiredMoveTicks = ceil(575 / 10) = 58
-SpaceRatio = 80 / 58 = 1.38
+FeePressureR = 10 / 250 = 0.04R
+IntradaySpaceValue = 80 × 10 = 800
+SpaceToAccountR = 800 / 250 = 3.2
 ```
 
 输出：
@@ -392,15 +373,15 @@ RejectReason = None
 
 | 参数 | 数值 |
 |---|---:|
-| OpenPrice | 5000 |
+| PreviousSettlementPrice | 5000 |
 | Multiplier | 10 |
 | TickSize | 5 |
 | MarginRate | 12% |
 | RoundTripFeePerLot | 20 |
-| BidPrice1 | 4995 |
-| AskPrice1 | 5000 |
-| OpeningVolume | 3000 |
-| ExpectedIntradayMoveTicks | 70 |
+| AverageDailyVolumeN | 260,000 |
+| AverageOpenInterestN | 120,000 |
+| MedianIntradayRangeN | 70 |
+| LimitUpDownRatio | 1% |
 
 推算：
 
@@ -408,40 +389,95 @@ RejectReason = None
 TickValue = 5 × 10 = 50
 OneLotMargin = 5000 × 10 × 12% = 6000
 MarginUsagePercent = 6000 / 50000 = 12%
-OneLotPriceRisk = 20 × 50 = 1000
-OneLotEstimatedCost = 20 + 2 × 50 = 120
-OneLotTradeR = 1000 + 120 = 1120
-AllowedLots = floor(250 / 1120) = 0
+FeePressureR = 20 / 250 = 0.08R
+IntradaySpaceValue = 70 × 10 = 700
+SpaceToAccountR = 700 / 250 = 2.8
+```
+
+输出：
+
+```text
+Status = Candidate
+RejectReason = None
+```
+
+---
+
+候选品种 C：
+
+| 参数 | 数值 |
+|---|---:|
+| PreviousSettlementPrice | 12000 |
+| Multiplier | 10 |
+| TickSize | 5 |
+| MarginRate | 15% |
+| RoundTripFeePerLot | 60 |
+| AverageDailyVolumeN | 80,000 |
+| AverageOpenInterestN | 40,000 |
+| MedianIntradayRangeN | 40 |
+| LimitUpDownRatio | 4% |
+
+推算：
+
+```text
+TickValue = 5 × 10 = 50
+OneLotMargin = 12000 × 10 × 15% = 18000
+MarginUsagePercent = 18000 / 50000 = 36%
 ```
 
 输出：
 
 ```text
 Status = Rejected
-RejectReason = RiskTooHigh
+RejectReason = MarginTooHigh
 ```
 
 ---
 
-## 9. 最终结果示例
+## 10. 最终结果示例
 
-| Symbol | Status | RejectReason | OneLotTradeR | AllowedLots | CostR | SpaceRatio |
-|---|---|---|---:|---:|---:|---:|
-| A | Candidate | None | 230 | 1 | 0.13R | 1.38 |
-| B | Rejected | RiskTooHigh | 1120 | 0 | 0.11R | - |
+| Symbol | Status | RejectReason | MarginUsagePercent | FeePressureR | SpaceToAccountR |
+|---|---|---|---:|---:|---:|
+| A | Preferred | None | 6% | 0.04R | 3.2 |
+| B | Candidate | None | 12% | 0.08R | 2.8 |
+| C | Rejected | MarginTooHigh | 36% | 0.24R | 1.6 |
 
 最终候选列表：
 
 ```text
 A
+B
 ```
 
 ---
 
-## 10. 结论
+## 11. 和后续交易结构的关系
+
+日内候选品种筛选只产生观察池。
+
+进入观察池后，具体交易结构再计算：
+
+```text
+入场价
+止损价
+TradeR
+允许手数
+成本占 TradeR 的比例
+是否满足正期望约束
+```
+
+因此，候选品种不是交易信号。
+
+---
+
+## 12. 结论
 
 日内候选品种筛选的目标是：
 
-> 找出账户当天能承受、成本合理、波动空间足够的少数品种。
+> 开盘前筛出账户承受能力内、费用压力低、历史流动性足够、历史波动空间足够的少数品种。
 
-核心输出不是交易信号，而是候选品种列表。
+核心输出：
+
+```text
+观察池
+```
