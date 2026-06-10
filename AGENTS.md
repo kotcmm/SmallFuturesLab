@@ -44,6 +44,12 @@ SmallFuturesLab 当前围绕一条主线推进：
 日内候选品种筛选
 ```
 
+第二步的筛选时间是：
+
+```text
+开盘前
+```
+
 核心概念：
 
 ```text
@@ -55,9 +61,9 @@ a
 c
 E
 TickValue
-OneLotTradeR
-CostR
-SpaceRatio
+OneLotMargin
+FeePressureR
+SpaceToAccountR
 ```
 
 实现代码时，命名应优先使用这些业务术语。
@@ -97,7 +103,7 @@ SpaceRatio
 每日风险约束
 连续亏损约束
 最大回撤约束
-日内候选品种筛选
+开盘前候选品种筛选
 参数输入到输出约束的完整推算
 ```
 
@@ -283,6 +289,9 @@ TradeR <= AccountR 约束
 每日亏损约束
 连续亏损约束
 最大回撤金额计算
+一手保证金计算
+费用压力计算
+历史波动空间倍数计算
 日内候选品种筛选状态
 拒绝原因
 候选品种排序
