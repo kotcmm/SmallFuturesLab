@@ -1,9 +1,9 @@
 namespace SmallFuturesLab.Core;
 
 /// <summary>
-/// 表示品种可能发生的风险配置。
+/// 表示本次品种过滤测算条件。
 /// </summary>
-public sealed class ProductRiskConfig
+public sealed class FilterCondition
 {
     /// <summary>
     /// 本次测算假设的止损距离，单位 tick。必须大于 0。

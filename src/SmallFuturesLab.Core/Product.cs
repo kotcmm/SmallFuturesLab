@@ -3,16 +3,16 @@ namespace SmallFuturesLab.Core;
 /// <summary>
 /// 表示一个待过滤的品种 / 合约信息。
 /// </summary>
-public sealed class ProductInfo
+public sealed class Product
 {
     /// <summary>交易所名称或简称。</summary>
     public string Exchange { get; set; } = string.Empty;
 
     /// <summary>品种代码，例如 MA、RB、CU。</summary>
-    public string ProductId { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
 
     /// <summary>合约代码，例如 MA2601、RB2510。</summary>
-    public string InstrumentId { get; set; } = string.Empty;
+    public string Contract { get; set; } = string.Empty;
 
     /// <summary>品种名称，例如 甲醇。</summary>
     public string Name { get; set; } = string.Empty;

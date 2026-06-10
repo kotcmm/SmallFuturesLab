@@ -40,7 +40,7 @@ foreach (var error in readResult.Errors)
 }
 
 var accountConfig = new AccountRiskConfig { AccountEquity = accountEquity };
-var riskConfig = new ProductRiskConfig
+var condition = new FilterCondition
 {
     StopTicks = stopTicks,
     SlippageTicks = slippageTicks,
@@ -49,12 +49,12 @@ var riskConfig = new ProductRiskConfig
 
 foreach (var product in readResult.Products)
 {
-    var eval = new ProductEvaluation(product, accountEquity, riskConfig);
+    var eval = new ProductEvaluation(product, accountEquity, condition);
     var status = eval.Evaluate(accountConfig);
 
-    Console.WriteLine($"品种: {product.ProductId} 合约: {product.InstrumentId}");
+    Console.WriteLine($"品种: {product.Code} 合约: {product.Contract}");
     Console.WriteLine($"  价格: {product.Price:F2}");
-    Console.WriteLine($"  保证金金额: {eval.MarginPerLot * riskConfig.Lots:F2}");
+    Console.WriteLine($"  保证金金额: {eval.MarginPerLot * condition.Lots:F2}");
     Console.WriteLine($"  总风险金额: {eval.TotalRiskMoney:F2}");
     Console.WriteLine($"  风险比例: {eval.RiskRate:P2}");
     Console.WriteLine($"  保证金比例: {eval.MarginRateOfEquity:P2}");

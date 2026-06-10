@@ -40,7 +40,7 @@ public sealed partial class TradingPlanetFileReader
 
         var text = File.ReadAllText(filePath);
         var rows = ExtractRows(text);
-        var products = new List<ProductInfo>();
+        var products = new List<Product>();
         var errors = new List<TradingPlanetReadError>();
         var currentExchange = string.Empty;
 
@@ -85,7 +85,7 @@ public sealed partial class TradingPlanetFileReader
         };
     }
 
-    private ProductInfo? TryParseDataRow(
+    private Product? TryParseDataRow(
         int rowNumber,
         string exchange,
         IReadOnlyList<string> cells,
@@ -123,11 +123,11 @@ public sealed partial class TradingPlanetFileReader
             return null;
         }
 
-        return new ProductInfo
+        return new Product
         {
             Exchange = exchange,
-            ProductId = productCode,
-            InstrumentId = contractCode,
+            Code = productCode,
+            Contract = contractCode,
             Name = NormalizeProductName(productName),
             Price = price.Value,
             Multiplier = spec.Multiplier,

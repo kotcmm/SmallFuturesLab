@@ -12,8 +12,8 @@ public sealed class TradingPlanetFileReaderTests
         var result = new TradingPlanetFileReader().Read(file);
 
         var product = Assert.Single(result.Products);
-        Assert.Equal("MA", product.ProductId);
-        Assert.Equal("MA2601", product.InstrumentId);
+        Assert.Equal("MA", product.Code);
+        Assert.Equal("MA2601", product.Contract);
         Assert.Equal("甲醇", product.Name);
         Assert.Equal(2500, product.Price);
         Assert.Equal(10, product.Multiplier);
@@ -30,8 +30,8 @@ public sealed class TradingPlanetFileReaderTests
         var result = new TradingPlanetFileReader().Read(file);
 
         var product = Assert.Single(result.Products);
-        Assert.Equal("MA", product.ProductId);
-        Assert.Equal("MA2601", product.InstrumentId);
+        Assert.Equal("MA", product.Code);
+        Assert.Equal("MA2601", product.Contract);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class TradingPlanetFileReaderTests
 
         var result = new TradingPlanetFileReader().Read(file);
 
-        Assert.All(result.Products, p => Assert.IsType<ProductInfo>(p));
-        Assert.DoesNotContain(result.Products, p => p.ProductId == string.Empty);
+        Assert.All(result.Products, p => Assert.IsType<Product>(p));
+        Assert.DoesNotContain(result.Products, p => p.Code == string.Empty);
     }
 }

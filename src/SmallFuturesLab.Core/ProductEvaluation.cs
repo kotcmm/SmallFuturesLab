@@ -1,19 +1,20 @@
-﻿namespace SmallFuturesLab.Core;
+namespace SmallFuturesLab.Core;
 
 public sealed class ProductEvaluation
 {
-    public ProductEvaluation(ProductInfo product, double accountEquity, ProductRiskConfig productRiskConfig)
+    public ProductEvaluation(Product product, double accountEquity, FilterCondition condition)
     {
         TickValue = product.TickSize * product.Multiplier;
         MarginPerLot = product.Price * product.Multiplier * product.MarginRate;
-        MarginRateOfEquity = MarginPerLot * productRiskConfig.Lots / accountEquity;
-        StopRiskMoney = productRiskConfig.StopTicks * TickValue * productRiskConfig.Lots;
-        SlippageMoney = productRiskConfig.SlippageTicks * TickValue * productRiskConfig.Lots;
-        CostMoney = product.RoundTripFee * productRiskConfig.Lots + SlippageMoney;
+        MarginRateOfEquity = MarginPerLot * condition.Lots / accountEquity;
+        StopRiskMoney = condition.StopTicks * TickValue * condition.Lots;
+        SlippageMoney = condition.SlippageTicks * TickValue * condition.Lots;
+        CostMoney = product.RoundTripFee * condition.Lots + SlippageMoney;
         TotalRiskMoney = StopRiskMoney + CostMoney;
         RiskRate = TotalRiskMoney / accountEquity;
         CostRatio = StopRiskMoney > 0 ? CostMoney / StopRiskMoney : double.PositiveInfinity;
     }
+
     /// <summary>
     /// 一跳金额。
     /// TickValue = TickSize * Multiplier。
@@ -28,25 +29,25 @@ public sealed class ProductEvaluation
 
     /// <summary>
     /// 保证金占账户比例。
-    /// MarginRateOfEquity = MarginRateOfEquity = MarginPerLot × Lots / AccountEquity。
+    /// MarginRateOfEquity = MarginPerLot × Lots / AccountEquity。
     /// </summary>
     public double MarginRateOfEquity { get; private set; }
 
     /// <summary>
     /// 止损风险金额。
-    /// StopRiskMoney = ProductRiskConfig.StopTicks * Product.TickValue * ProductRiskConfig.Lots。
+    /// StopRiskMoney = StopTicks * TickValue * Lots。
     /// </summary>
     public double StopRiskMoney { get; private set; }
 
     /// <summary>
     /// 滑点金额。
-    /// SlippageMoney = ProductRiskConfig.SlippageTicks * Product.TickValue * ProductRiskConfig.Lots。
+    /// SlippageMoney = SlippageTicks * TickValue * Lots。
     /// </summary>
     public double SlippageMoney { get; private set; }
 
     /// <summary>
     /// 成本金额，包含手续费和滑点。
-    /// CostMoney = Product.RoundTripFee * ProductRiskConfig.Lots + SlippageMoney。
+    /// CostMoney = RoundTripFee * Lots + SlippageMoney。
     /// </summary>
     public double CostMoney { get; private set; }
 
@@ -58,7 +59,7 @@ public sealed class ProductEvaluation
 
     /// <summary>
     /// 总风险占账户权益比例。
-    /// RiskRate = TotalRiskMoney / RiskConfig.AccountEquity。
+    /// RiskRate = TotalRiskMoney / AccountEquity。
     /// </summary>
     public double RiskRate { get; private set; }
 
@@ -72,8 +73,8 @@ public sealed class ProductEvaluation
     /// <summary>
     /// 根据风险配置评估产品的过滤状态。
     /// </summary>
-    /// <param name="riskConfig"></param>
-    /// <returns></returns>
+    /// <param name="riskConfig">账户风险配置。</param>
+    /// <returns>品种过滤状态。</returns>
     public ProductEvaluationStatus Evaluate(AccountRiskConfig riskConfig)
     {
         if (RiskRate > riskConfig.RejectRiskRate ||
