@@ -34,21 +34,19 @@ src/SmallFuturesLab.Cli
 核心领域模块，只保留最小模型：
 
 ```text
-Product              — 品种信息（class）
-RiskConfig           — 账户风险配置（class）
-FilterCondition      — 测算条件（class）
-ProductRisk          — 风险压力计算快照（record）
-ProductFilter        — 过滤器（class）
-ProductFilterResult  — 单个品种过滤结果（record）
-ProductFilterStatus  — Allowed / Caution / Rejected（enum）
+Product                 — 品种信息（class）
+AccountRiskConfig       — 账户风险配置（class）
+FilterCondition         — 测算条件（class）
+ProductEvaluation       — 公式计算与状态判断（class）
+ProductEvaluationStatus — Allowed / Caution / Rejected（enum）
 ```
 
 流程：
 
 ```text
-Product + RiskConfig + FilterCondition
-→ ProductRisk（计算快照）
-→ ProductFilterResult（输出结果）
+Product + AccountRiskConfig + FilterCondition
+→ ProductEvaluation
+→ ProductEvaluationStatus
 ```
 
 Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
@@ -78,9 +76,9 @@ Core 不知道数据来自交易星球、Excel、CSV、网络还是 CTP。
 ```text
 读取命令行参数；
 调用 TradingPlanet 读取本地文件得到 Products；
-构造 RiskConfig 和 FilterCondition；
-调用 ProductFilter 过滤每个 Product；
-打印 ProductFilterResult。
+构造 AccountRiskConfig 和 FilterCondition；
+调用 ProductEvaluation 计算每个 Product；
+打印结果。
 ```
 
 ## 运行示例
