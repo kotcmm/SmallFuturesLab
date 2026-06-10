@@ -1,16 +1,41 @@
 using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
-using SmallFuturesLab.Core.Products;
+using SmallFuturesLab.Core;
 
 namespace SmallFuturesLab.TradingPlanet;
 
 /// <summary>
 /// 交易星球下载文件读取器。
 /// 支持 Excel 可打开的 HTML 表格文件。
+/// 读取后生成 FuturesContract，不执行过滤判断。
 /// </summary>
 public sealed partial class TradingPlanetFileReader
 {
+    private readonly ProductSpecLookup _specLookup;
+    private readonly int _stopTicks;
+    private readonly int _slippageTicks;
+    private readonly int _lots;
+
+    /// <summary>
+    /// 创建交易星球文件读取器。
+    /// </summary>
+    /// <param name="specLookup">品种规格查找表，用于补齐 Multiplier 和 TickSize。</param>
+    /// <param name="stopTicks">默认止损 tick 数。</param>
+    /// <param name="slippageTicks">默认滑点 tick 数。</param>
+    /// <param name="lots">默认测算手数。</param>
+    public TradingPlanetFileReader(
+        ProductSpecLookup? specLookup = null,
+        int stopTicks = 10,
+        int slippageTicks = 2,
+        int lots = 1)
+    {
+        _specLookup = specLookup ?? new ProductSpecLookup();
+        _stopTicks = stopTicks;
+        _slippageTicks = slippageTicks;
+        _lots = lots;
+    }
+
     /// <summary>
     /// 读取交易星球本地下载文件。
     /// </summary>
@@ -28,7 +53,7 @@ public sealed partial class TradingPlanetFileReader
 
         var text = File.ReadAllText(filePath);
         var rows = ExtractRows(text);
-        var items = new List<TradingPlanetReadItem>();
+        var contracts = new List<FuturesContract>();
         var errors = new List<TradingPlanetReadError>();
         var currentExchange = string.Empty;
 
@@ -59,21 +84,21 @@ public sealed partial class TradingPlanetFileReader
                 continue;
             }
 
-            var item = TryParseDataRow(rowNumber, currentExchange, cells, errors);
-            if (item is not null)
+            var contract = TryParseDataRow(rowNumber, currentExchange, cells, errors);
+            if (contract is not null)
             {
-                items.Add(item);
+                contracts.Add(contract);
             }
         }
 
         return new TradingPlanetReadResult
         {
-            Items = items,
+            Contracts = contracts,
             Errors = errors,
         };
     }
 
-    private static TradingPlanetReadItem? TryParseDataRow(
+    private FuturesContract? TryParseDataRow(
         int rowNumber,
         string exchange,
         IReadOnlyList<string> cells,
@@ -82,7 +107,6 @@ public sealed partial class TradingPlanetFileReader
         var productName = cells[0].Trim();
         var contractCode = cells[1].Trim();
         var productCode = ExtractProductCode(contractCode);
-        var rawRemark = cells[13].Trim();
 
         if (string.IsNullOrWhiteSpace(contractCode))
         {
@@ -97,36 +121,35 @@ public sealed partial class TradingPlanetFileReader
         }
 
         var price = TryParsePositiveDouble(cells[2], rowNumber, "Price", errors);
-        var marginPerLot = TryParsePositiveDouble(cells[6], rowNumber, "MarginPerLot", errors);
-        var roundTripFee = TryParseNonNegativeDouble(cells[10], rowNumber, "RoundTripFeePerLot", errors);
-        var tickValue = TryParsePositiveDouble(cells[11], rowNumber, "TickValue", errors);
+        var marginRate = TryParseMarginRate(cells[4], cells[5], rowNumber, errors);
+        var roundTripFee = TryParseNonNegativeDouble(cells[10], rowNumber, "RoundTripFee", errors);
 
-        if (!price.HasValue || !marginPerLot.HasValue || !roundTripFee.HasValue || !tickValue.HasValue)
+        if (!price.HasValue || !marginRate.HasValue || !roundTripFee.HasValue)
         {
             return null;
         }
 
-        return new TradingPlanetReadItem
+        var spec = _specLookup.Find(productCode);
+        if (spec is null)
         {
-            Product = new ProductInfo
-            {
-                Identity = new ProductIdentity
-                {
-                    Exchange = exchange,
-                    ProductCode = productCode,
-                    ContractCode = contractCode,
-                    ProductName = NormalizeProductName(productName),
-                },
-                Economics = new PerLotEconomics
-                {
-                    Price = price.Value,
-                    MarginPerLot = marginPerLot.Value,
-                    TickValue = tickValue.Value,
-                    RoundTripFeePerLot = roundTripFee.Value,
-                },
-            },
-            RawRemark = rawRemark,
-            NeedsReview = true,
+            AddError(errors, rowNumber, "ProductCode", $"找不到品种 {productCode} 的规格（Multiplier/TickSize）");
+            return null;
+        }
+
+        return new FuturesContract
+        {
+            Exchange = exchange,
+            ProductCode = productCode,
+            ContractCode = contractCode,
+            ProductName = NormalizeProductName(productName),
+            Price = price.Value,
+            Multiplier = spec.Multiplier,
+            TickSize = spec.TickSize,
+            MarginRate = marginRate.Value,
+            RoundTripFee = roundTripFee.Value,
+            StopTicks = _stopTicks,
+            SlippageTicks = _slippageTicks,
+            Lots = _lots,
         };
     }
 
@@ -175,6 +198,25 @@ public sealed partial class TradingPlanetFileReader
         return parsed.Value;
     }
 
+    private static double? TryParseMarginRate(
+        string buyMarginCell,
+        string sellMarginCell,
+        int rowNumber,
+        List<TradingPlanetReadError> errors)
+    {
+        var buyRate = TryParsePercent(buyMarginCell);
+        var sellRate = TryParsePercent(sellMarginCell);
+
+        var maxRate = Math.Max(buyRate ?? 0, sellRate ?? 0);
+        if (maxRate <= 0)
+        {
+            AddError(errors, rowNumber, "MarginRate", "保证金比例必须是有限正数");
+            return null;
+        }
+
+        return maxRate;
+    }
+
     private static double? TryParseDouble(string value)
     {
         var cleaned = value
@@ -193,6 +235,17 @@ public sealed partial class TradingPlanetFileReader
         }
 
         return double.IsFinite(parsed) ? parsed : null;
+    }
+
+    private static double? TryParsePercent(string value)
+    {
+        var parsed = TryParseDouble(value);
+        if (!parsed.HasValue)
+        {
+            return null;
+        }
+
+        return value.Contains('%', StringComparison.Ordinal) ? parsed.Value / 100.0 : parsed.Value;
     }
 
     private static void AddError(

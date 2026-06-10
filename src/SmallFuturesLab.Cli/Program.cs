@@ -1,6 +1,4 @@
-using SmallFuturesLab.Core.Accounts;
-using SmallFuturesLab.Core.Filtering;
-using SmallFuturesLab.Core.Risk;
+using SmallFuturesLab.Core;
 using SmallFuturesLab.TradingPlanet;
 
 if (args.Length == 0 || args[0] is "-h" or "--help")
@@ -33,7 +31,7 @@ if (string.IsNullOrWhiteSpace(input)
     return 1;
 }
 
-var reader = new TradingPlanetFileReader();
+var reader = new TradingPlanetFileReader(stopTicks: stopTicks, slippageTicks: slippageTicks, lots: lots);
 var readResult = reader.Read(input);
 
 foreach (var error in readResult.Errors)
@@ -41,33 +39,23 @@ foreach (var error in readResult.Errors)
     Console.Error.WriteLine($"读取错误 行{error.RowNumber} {error.FieldName}: {error.Reason}");
 }
 
-var calculator = new ProductFilterCalculator();
-var account = new AccountProfile { Equity = accountEquity };
-var scenario = new FilterScenario
+var filter = new ProductFilter();
+var config = new RiskConfig { AccountEquity = accountEquity };
+
+foreach (var contract in readResult.Contracts)
 {
-    Lots = lots,
-    StopTicks = stopTicks,
-    SlippageTicks = slippageTicks,
-};
+    var result = filter.Evaluate(contract, config);
 
-Console.WriteLine("ProductCode,ContractCode,Price,MarginPerLot,MarginRateOfEquity,TotalRiskMoney,RiskRate,CostRatio,Status,Reasons");
-
-foreach (var item in readResult.Items)
-{
-    var decision = calculator.Calculate(item.Product, account, scenario, RiskPolicy.Default);
-    var product = item.Product;
-
-    Console.WriteLine(string.Join(",",
-        product.Identity.ProductCode,
-        product.Identity.ContractCode,
-        product.Economics.Price.ToString("F2"),
-        decision.MarginPerLot.ToString("F2"),
-        decision.MarginRateOfEquity.ToString("P2"),
-        decision.TotalRiskMoney.ToString("F2"),
-        decision.RiskRate.ToString("P2"),
-        decision.CostRatio.ToString("P2"),
-        decision.Status,
-        Quote(string.Join("；", decision.Reasons))));
+    Console.WriteLine($"品种: {result.ProductCode} 合约: {result.ContractCode}");
+    Console.WriteLine($"  价格: {contract.Price:F2}");
+    Console.WriteLine($"  保证金金额: {result.MarginMoney:F2}");
+    Console.WriteLine($"  总风险金额: {result.TotalRiskMoney:F2}");
+    Console.WriteLine($"  风险比例: {result.RiskRate:P2}");
+    Console.WriteLine($"  保证金比例: {result.MarginRate:P2}");
+    Console.WriteLine($"  成本比例: {result.CostRatio:P2}");
+    Console.WriteLine($"  状态: {result.Status}");
+    Console.WriteLine($"  原因: {string.Join("；", result.Reasons)}");
+    Console.WriteLine();
 }
 
 return readResult.Errors.Count > 0 ? 2 : 0;
@@ -85,11 +73,6 @@ static string? GetOption(string[] args, string name)
     return null;
 }
 
-static string Quote(string value)
-{
-    var escaped = value.Replace("\"", "\"\"", StringComparison.Ordinal);
-    return $"\"{escaped}\"";
-}
 static void PrintUsage()
 {
     Console.WriteLine("用法：");
