@@ -94,7 +94,7 @@ TradeR <= AccountR
 
 期望公式里的 `1R` 指的是 `TradeR`，也就是该笔交易自己的计划风险。
 
-平均亏损倍数 `a` 的定义是：
+平均亏损倍数 `a` 的定义见：[实际平均亏损](01_Positive_Expectancy_and_Risk_Constraints/Actual_Average_Loss.md)。
 
 ```text
 a = 实际平均亏损 / TradeR
@@ -129,7 +129,7 @@ E = p × b - (1 - p) × a - c
 - `E`：单笔交易期望，单位是 R；
 - `p`：胜率，由回测或实盘记录统计出来；
 - `b`：平均盈利，单位是 R，由回测或实盘记录统计出来；
-- `a`：平均亏损，单位是 R，由止损执行和交易记录统计出来；
+- `a`：平均亏损倍数，等于 [实际平均亏损](01_Positive_Expectancy_and_Risk_Constraints/Actual_Average_Loss.md) / `TradeR`；
 - `c`：手续费、滑点、冲击成本，单位是 R。
 
 当平均亏损控制在 `1R` 时：
