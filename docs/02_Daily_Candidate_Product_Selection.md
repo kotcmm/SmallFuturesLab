@@ -7,7 +7,7 @@
 输出结果：
 
 ```text
-候选品种列表
+观察池
 ```
 
 每个候选品种只回答一个问题：
@@ -20,21 +20,25 @@
 
 ## 2. 核心边界
 
-品种筛选只判断“品种是否值得观察”。
+品种本身没有入场价和止损价。
 
-单笔交易风险由具体入场价和止损价决定，属于后续交易结构阶段。
+所以品种筛选阶段只判断“品种是否值得观察”。
 
-因此，本文件不计算：
+本步骤输出：
 
 ```text
-TradeR
-入场价
-止损价
-允许手数
-单笔期望
+观察池
 ```
 
-本文件只计算品种层面的可观察性。
+后续交易结构阶段再计算：
+
+```text
+入场价
+止损价
+TradeR
+允许手数
+成本占 TradeR 的比例
+```
 
 ---
 
@@ -67,16 +71,18 @@ TradeR
 
 ### 4.1 上游风险约束
 
-这些参数来自 `01_Positive_Expectancy_and_Risk_Constraints.md` 的结果。
+这些参数来自 `01_Positive_Expectancy_and_Risk_Constraints.md` 的计算结果或约束结果。
 
 | 参数 | 含义 |
 |---|---|
 | AccountR | 账户单笔风险上限 |
-| MaxMarginUsagePercent | 单品种最大保证金占用比例 |
+| MaxOneLotMargin | 单品种一手保证金上限 |
 | MaxFeePressureR | 最大费用压力 |
+| MinSpaceToAccountR | 最低历史波动空间倍数 |
+| MaxLimitUpDownRatio | 最大极端波动比例 |
 | MaxCandidates | 最多候选品种数 |
 
-这里使用它们作为筛选约束，不在本文件重新定义账户配置。
+第二步只使用这些约束值，不重新定义账户配置。
 
 ---
 
@@ -118,31 +124,30 @@ OneLotMargin = OneLotNotional × MarginRate
 |---|---|
 | AverageDailyVolumeN | 最近 N 日平均成交量 |
 | AverageOpenInterestN | 最近 N 日平均持仓量 |
-| AverageTrueRangeN | 最近 N 日平均真实波幅 |
 | MedianIntradayRangeN | 最近 N 日日内振幅中位数 |
 | LimitUpDownRatio | 近期涨跌停或接近涨跌停的比例 |
 
-这些数据来自历史行情统计，不来自当天开盘后的盘口。
+这些数据来自历史行情统计。
 
 ---
 
 ## 5. 推算过程
 
-### 5.1 保证金压力
+### 5.1 一手保证金
 
 ```text
-MarginUsagePercent = OneLotMargin / AccountEquity
+OneLotMargin = PreviousSettlementPrice × Multiplier × MarginRate
 ```
 
 筛选规则：
 
 ```text
-MarginUsagePercent <= MaxMarginUsagePercent
+OneLotMargin <= MaxOneLotMargin
 ```
 
 说明：
 
-> 保证金过高的品种会挤压容错空间。
+> 保证金过高的品种会挤压小资金账户的容错空间。
 
 ---
 
@@ -152,11 +157,11 @@ MarginUsagePercent <= MaxMarginUsagePercent
 TickValue = TickSize × Multiplier
 ```
 
-筛选含义：
+含义：
 
 > TickValue 越大，最小价格跳动对小资金越不友好。
 
-本步骤不把 TickValue 等同于单笔风险。
+本步骤只记录 `TickValue`，不把它等同于单笔风险。
 
 ---
 
@@ -184,13 +189,13 @@ FeePressureR <= MaxFeePressureR
 
 ### 5.4 历史流动性
 
-成交量过滤：
+成交量筛选：
 
 ```text
 AverageDailyVolumeN >= MinAverageDailyVolumeN
 ```
 
-持仓量过滤：
+持仓量筛选：
 
 ```text
 AverageOpenInterestN >= MinAverageOpenInterestN
@@ -210,7 +215,7 @@ AverageOpenInterestN >= MinAverageOpenInterestN
 IntradaySpaceValue = MedianIntradayRangeN × Multiplier
 ```
 
-波动空间压力：
+波动空间倍数：
 
 ```text
 SpaceToAccountR = IntradaySpaceValue / AccountR
@@ -224,13 +229,11 @@ SpaceToAccountR >= MinSpaceToAccountR
 
 说明：
 
-> 如果历史日内波动空间太小，即使能下单，也可能无法覆盖风险和成本。
+> 如果历史日内波动空间太小，即使后续出现入场结构，也可能难以覆盖风险和成本。
 
 ---
 
-### 5.6 异常波动排除
-
-近期涨跌停或接近涨跌停比例过高时，品种稳定性较差。
+### 5.6 极端波动排除
 
 ```text
 LimitUpDownRatio <= MaxLimitUpDownRatio
@@ -238,7 +241,7 @@ LimitUpDownRatio <= MaxLimitUpDownRatio
 
 说明：
 
-> 小资金不适合优先观察容易被极端波动影响的品种。
+> 小资金不优先观察容易被极端波动影响的品种。
 
 ---
 
@@ -256,8 +259,7 @@ LimitUpDownRatio <= MaxLimitUpDownRatio
 
 | 原因 | 含义 |
 |---|---|
-| MarginTooHigh | 保证金压力过高 |
-| TickValueTooLarge | 一跳价值过大 |
+| MarginTooHigh | 一手保证金过高 |
 | FeePressureTooHigh | 费用压力过高 |
 | LiquidityTooLow | 历史流动性不足 |
 | SpaceTooSmall | 历史波动空间不足 |
@@ -273,7 +275,7 @@ LimitUpDownRatio <= MaxLimitUpDownRatio
 
 1. `SpaceToAccountR` 越高越靠前；
 2. `FeePressureR` 越低越靠前；
-3. `MarginUsagePercent` 越低越靠前；
+3. `OneLotMargin` 越低越靠前；
 4. `AverageDailyVolumeN` 越高越靠前；
 5. `AverageOpenInterestN` 越高越靠前。
 
@@ -304,7 +306,7 @@ MaxCandidates = 3
 | PreviousSettlementPrice | 昨日结算价 |
 | TickValue | 一跳价值 |
 | OneLotMargin | 一手保证金 |
-| MarginUsagePercent | 保证金压力 |
+| MaxOneLotMargin | 单品种一手保证金上限 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
 | FeePressureR | 费用压力 |
 | AverageDailyVolumeN | 最近 N 日平均成交量 |
@@ -322,7 +324,7 @@ MaxCandidates = 3
 | 参数 | 数值 |
 |---|---:|
 | AccountR | 250 |
-| MaxMarginUsagePercent | 25% |
+| MaxOneLotMargin | 12,500 |
 | MaxFeePressureR | 0.20R |
 | MinSpaceToAccountR | 2.5 |
 | MaxLimitUpDownRatio | 10% |
@@ -354,7 +356,6 @@ MaxCandidates = 3
 ```text
 TickValue = 1 × 10 = 10
 OneLotMargin = 3000 × 10 × 10% = 3000
-MarginUsagePercent = 3000 / 50000 = 6%
 FeePressureR = 10 / 250 = 0.04R
 IntradaySpaceValue = 80 × 10 = 800
 SpaceToAccountR = 800 / 250 = 3.2
@@ -388,7 +389,6 @@ RejectReason = None
 ```text
 TickValue = 5 × 10 = 50
 OneLotMargin = 5000 × 10 × 12% = 6000
-MarginUsagePercent = 6000 / 50000 = 12%
 FeePressureR = 20 / 250 = 0.08R
 IntradaySpaceValue = 70 × 10 = 700
 SpaceToAccountR = 700 / 250 = 2.8
@@ -422,7 +422,6 @@ RejectReason = None
 ```text
 TickValue = 5 × 10 = 50
 OneLotMargin = 12000 × 10 × 15% = 18000
-MarginUsagePercent = 18000 / 50000 = 36%
 ```
 
 输出：
@@ -436,13 +435,13 @@ RejectReason = MarginTooHigh
 
 ## 10. 最终结果示例
 
-| Symbol | Status | RejectReason | MarginUsagePercent | FeePressureR | SpaceToAccountR |
+| Symbol | Status | RejectReason | OneLotMargin | FeePressureR | SpaceToAccountR |
 |---|---|---|---:|---:|---:|
-| A | Preferred | None | 6% | 0.04R | 3.2 |
-| B | Candidate | None | 12% | 0.08R | 2.8 |
-| C | Rejected | MarginTooHigh | 36% | 0.24R | 1.6 |
+| A | Preferred | None | 3000 | 0.04R | 3.2 |
+| B | Candidate | None | 6000 | 0.08R | 2.8 |
+| C | Rejected | MarginTooHigh | 18000 | 0.24R | 1.6 |
 
-最终候选列表：
+最终观察池：
 
 ```text
 A
