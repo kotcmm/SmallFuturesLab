@@ -58,26 +58,11 @@
 
 ## 4. 过滤一：保证金过滤
 
-先用昨日结算价估算该品种一手保证金：
+先计算该品种筛选用一手保证金：
 
 ```text
 OneLotMargin = PreviousSettlementPrice × Multiplier × MarginRate
 ```
-
-说明：
-
-```text
-这是开盘前的初步估算，用于候选品种筛选。
-由于今日价格可能相对昨日结算价变化，实际下单前仍需要使用最新保证金数据或更保守估算。
-```
-
-可选的保守估算方式：
-
-```text
-EstimatedOneLotMargin = PreviousSettlementPrice × 1.05 × Multiplier × MarginRate
-```
-
-第一版默认仍使用 `OneLotMargin`，是否启用 `EstimatedOneLotMargin` 由后续回测和实盘风控需要决定。
 
 再计算账户允许的保证金占用金额：
 
