@@ -30,6 +30,10 @@
 2. 一跳价值；
 3. 单手开平手续费。
 
+通过基础条件的品种全部进入观察池。
+
+排序只用于展示优先级，不用于强制截断。
+
 ---
 
 ## 3. 核心边界
@@ -45,9 +49,10 @@ TradeR
 入场价
 止损价
 盘中结构
+最多交易品种数
 ```
 
-这些内容放到后续交易结构阶段处理。
+这些内容放到后续交易结构和风险控制阶段处理。
 
 ---
 
@@ -62,7 +67,6 @@ TradeR
 | MaxOneLotMargin | 一手保证金上限 | 12,000 |
 | MaxTickValue | 一跳价值上限 | 20 |
 | MaxRoundTripFeePerLot | 单手开平手续费上限 | 30 |
-| MaxCandidates | 最多观察品种数 | 3 |
 
 ---
 
@@ -172,9 +176,11 @@ MarginTooHigh → TickValueTooLarge → FeeTooHigh
 
 ---
 
-## 8. 候选排序
+## 8. 排序
 
-通过筛选的品种，如果数量超过 `MaxCandidates`，再排序。
+排序只用于展示观察优先级。
+
+排序不用于排除品种。
 
 排序原则：
 
@@ -191,13 +197,7 @@ Score =
 + RoundTripFeePerLot / MaxRoundTripFeePerLot
 ```
 
-`Score` 越小越靠前。
-
-最终保留：
-
-```text
-MaxCandidates
-```
+`Score` 越小，观察优先级越高。
 
 ---
 
@@ -231,7 +231,6 @@ MaxCandidates
 | MaxOneLotMargin | 12,000 |
 | MaxTickValue | 20 |
 | MaxRoundTripFeePerLot | 30 |
-| MaxCandidates | 3 |
 
 ---
 
@@ -346,10 +345,48 @@ RejectReason = MarginTooHigh
 
 ---
 
+### 10.4 品种 D
+
+输入：
+
+| 参数 | 数值 |
+|---|---:|
+| PreviousSettlementPrice | 2500 |
+| Multiplier | 10 |
+| MarginRate | 10% |
+| TickSize | 1 |
+| RoundTripFeePerLot | 18 |
+
+计算：
+
+```text
+OneLotMargin = 2500 × 10 × 10% = 2500
+TickValue = 1 × 10 = 10
+RoundTripFeePerLot = 18
+```
+
+判断：
+
+```text
+2500 <= 12000，通过
+10 <= 20，通过
+18 <= 30，通过
+```
+
+结果：
+
+```text
+Status = Candidate
+RejectReason = None
+```
+
+---
+
 ## 11. 最终结果示例
 
 | Symbol | Status | RejectReason | OneLotMargin | TickValue | RoundTripFeePerLot | Score |
 |---|---|---|---:|---:|---:|---:|
+| D | Candidate | None | 2500 | 10 | 18 | 1.31 |
 | A | Candidate | None | 3000 | 10 | 10 | 1.08 |
 | B | Rejected | TickValueTooLarge | 6000 | 50 | 20 | - |
 | C | Rejected | MarginTooHigh | 18000 | 10 | 25 | - |
@@ -358,6 +395,14 @@ RejectReason = MarginTooHigh
 
 ```text
 A
+D
+```
+
+说明：
+
+```text
+所有通过基础条件的品种都进入观察池。
+排序只表示观察优先级，不会因为数量多而截断。
 ```
 
 ---
