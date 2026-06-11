@@ -9,6 +9,7 @@ README.md
 docs/00_SmallFuturesLab_System_Framework.md
 docs/01_Positive_Expectancy_and_Risk_Constraints.md
 docs/02_Daily_Candidate_Product_Selection.md
+docs/03_Trading_Market_Structure.md
 ```
 
 涉及术语解释时阅读：
@@ -34,20 +35,27 @@ README.md = 项目入口说明
 SmallFuturesLab 当前围绕一条主线推进：
 
 ```text
-正期望条件 → 风险约束 → 候选品种筛选 → 行情结构 → 执行记录 → 验证修正
+正期望条件 → 风险约束 → 候选品种筛选 → 交易行情结构 → 交易计划验算 → 执行记录 → 验证修正
 ```
 
-前两步已形成文档：
+当前核心文档已经覆盖前三步：
 
 ```text
 建立正期望与风险约束
 日内候选品种筛选
+寻找交易行情结构
 ```
 
 第二步的筛选时间是：
 
 ```text
 开盘前
+```
+
+第三步第一版只实现：
+
+```text
+开盘区间突破
 ```
 
 核心概念：
@@ -60,10 +68,21 @@ b
 a
 c
 E
-TickValue
+MinPlannedRewardR
+PerTradeCostMaxR
+MaxMarginUsageRatio
+DailyLossLimit
+DailyProfitLockR
+MaxDailyTrades
 OneLotMargin
-FeePressureR
-SpaceToAccountR
+TickValue
+MinimumOneLotTradeR
+TradeSetup
+TargetPrice
+AllowedLots
+OpeningRangeHigh
+OpeningRangeLow
+DailyStructureState
 ```
 
 实现代码时，命名应优先使用这些业务术语。
@@ -96,14 +115,19 @@ SpaceToAccountR
 
 ```text
 正期望模型计算
-风险单位计算
-成本占比计算
 最低胜率反推
-手数计算
-每日风险约束
-连续亏损约束
-最大回撤约束
-开盘前候选品种筛选
+AccountR 计算
+TradeR 计算
+MinPlannedRewardR 目标价推导
+PerTradeCostMaxR 单笔成本检查
+MaxMarginUsageRatio 保证金占用检查
+AllowedLots 手数计算
+DailyLossLimit 每日亏损停止
+DailyProfitLockR 每日盈利保护
+MaxDailyTrades 每日交易次数限制
+日内候选品种筛选
+开盘区间突破 TradeSetup 生成
+单品种日内结构状态控制
 参数输入到输出约束的完整推算
 ```
 
@@ -216,7 +240,7 @@ SmallFuturesLab.TradingPlanet.Tests
 无外部副作用
 ```
 
-风险计算、期望计算、品种筛选、参数推导应设计成可独立测试的领域对象或纯函数。
+风险计算、期望计算、品种筛选、交易结构、参数推导应设计成可独立测试的领域对象或纯函数。
 
 ---
 
@@ -247,8 +271,12 @@ ExpectedValue
 CostInR
 MinimumWinRate
 RiskConstraint
-DailyCandidateProductSelection
+CandidateProductSelection
 CandidateProductSelectionResult
+OpeningRangeBreakout
+TradeSetup
+TradePlan
+DailyStructureState
 ```
 
 ---
@@ -285,16 +313,20 @@ TradeR <= AccountR 约束
 成本换算为 R
 最低胜率反推
 正期望计算
-手数计算
-每日亏损约束
-连续亏损约束
+MinPlannedRewardR 目标价推导
+AllowedLots 手数计算
+DailyLossLimit 每日亏损停止
+DailyProfitLockR 每日盈利保护
+MaxDailyTrades 每日交易次数限制
 最大回撤金额计算
 一手保证金计算
-费用压力计算
-历史波动空间倍数计算
+最小交易颗粒度过滤
 日内候选品种筛选状态
 拒绝原因
-候选品种排序
+开盘区间计算
+开盘区间突破 TradeSetup 生成
+单品种同结构每日只触发一次
+DailyStructureState 状态切换
 ```
 
 当前阶段允许使用 `double`。
