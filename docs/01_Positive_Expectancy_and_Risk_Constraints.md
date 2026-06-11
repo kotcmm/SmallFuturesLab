@@ -46,7 +46,7 @@ SmallFuturesLab 的第一步是：
 | 仓位手数 | 根据账户风险上限和单笔结构风险计算。 |
 | 计划目标空间 | 每笔交易必须满足最低计划盈利倍数。 |
 | 保证金占用 | 账户总保证金占用不得超过最大比例。 |
-| 单笔成本 | 每笔交易成本不得超过单笔成本上限。 |
+| 单笔成本 | 交易前只用可确定或可稳定估计的成本做约束。 |
 | 每日亏损 | 达到亏损上限后停止新开仓。 |
 | 每日盈利保护 | 达到盈利保护线后停止新开仓。 |
 | 每日交易次数 | 达到交易次数上限后停止新开仓。 |
@@ -107,7 +107,7 @@ E = p × b - (1 - p) × a - c
 | `p` | 胜率 | 回测或实盘记录统计 |
 | `b` | 平均盈利，单位是 R | 回测或实盘记录统计 |
 | `a` | 平均亏损倍数 | 回测或实盘记录统计 |
-| `c` | 单笔交易成本，单位是 R | 单笔交易计划计算 |
+| `c` | 单笔交易成本，单位是 R | 交易计划预估或交易记录统计 |
 
 正期望条件：
 
@@ -250,35 +250,50 @@ TargetPrice 由风险约束阶段生成，不由行情结构阶段生成。
 
 ## 9. 单笔成本约束
 
-成本包括：
+成本分成两类：
 
-1. 手续费；
-2. 滑点；
-3. 买卖价差；
-4. 冲击成本；
-5. 无法按计划价格成交的损耗。
+| 类型 | 是否在交易前确定 | 当前处理方式 |
+|---|---|---|
+| 手续费 | 可以相对稳定估计 | 进入交易前风险约束。 |
+| 滑点 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 买卖价差 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 冲击成本 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 无法按计划价格成交的损耗 | 不能精确提前知道 | 成交后进入实际交易记录。 |
 
-成本必须在每一笔交易计划中单独计算。
-
-### 9.1 成本字段关系
+### 9.1 交易前成本字段
 
 `RoundTripFeePerLot` 是单手开平合计手续费，来自品种资料或交易所费率。
 
-`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的预估单手总成本。
+`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的交易前预估单手成本。
 
-当前默认使用：
+当前默认只使用可相对稳定估计的手续费：
 
 ```text
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```
 
-后续如果需要更保守，可以增加滑点、价差或冲击成本缓冲：
+说明：
 
 ```text
-EstimatedRoundTripCostPerLot = RoundTripFeePerLot + SlippageBufferPerLot + SpreadBufferPerLot + ImpactBufferPerLot
+滑点、买卖价差、冲击成本不作为当前默认风险约束输入。
+这些成本需要在成交后根据实际成交记录统计。
 ```
 
-### 9.2 成本计算流程
+成交后记录实际成本：
+
+```text
+ActualRoundTripCost = ActualFee + ActualSlippageCost + ActualSpreadCost + ActualMarketImpactCost
+```
+
+如果长期出现：
+
+```text
+ActualRoundTripCost 明显高于 EstimatedRoundTripCostPerLot
+```
+
+再考虑是否调整成本模型或在交易计划阶段加入保守成本缓冲。
+
+### 9.2 交易前成本计算流程
 
 一手价格风险：
 
@@ -304,16 +319,16 @@ AllowedLots = floor(AccountR / OneLotTradeR)
 TradeR = OneLotTradeR × AllowedLots
 ```
 
-本笔交易总成本：
+本笔交易前预估总成本：
 
 ```text
-TotalTradeCost = EstimatedRoundTripCostPerLot × AllowedLots
+EstimatedTotalTradeCost = EstimatedRoundTripCostPerLot × AllowedLots
 ```
 
-成本占比：
+交易前预估成本占比：
 
 ```text
-c = TotalTradeCost / TradeR
+c = EstimatedTotalTradeCost / TradeR
 ```
 
 当 `AllowedLots = 1` 时：
@@ -333,6 +348,24 @@ c <= PerTradeCostMaxR
 ```text
 PerTradeCostMaxR = 0.20R
 ```
+
+### 9.3 成交后成本统计
+
+成交完成后，需要使用成交记录统计实际成本：
+
+```text
+ActualCostR = ActualRoundTripCost / TradeR
+```
+
+如果长期出现：
+
+```text
+ActualCostR > c
+```
+
+说明交易前成本估计偏低，可能来自滑点、买卖价差、冲击成本或成交质量问题。
+
+此时应优先复盘执行质量和品种流动性，而不是直接把不可控成本硬塞进风险约束参数。
 
 ---
 
@@ -617,7 +650,7 @@ TradeR <= AccountR
 ### 16.2 单笔成本计算
 
 ```text
-TotalTradeCost = 20 × 1 = 20
+EstimatedTotalTradeCost = 20 × 1 = 20
 c = 20 / 220
 c = 0.09R
 ```
@@ -713,7 +746,7 @@ OneLotMargin = 3,000
 | OneLotTradeR | 220 | 一手计划风险。 |
 | AllowedLots | 1 手 | 本笔允许手数。 |
 | TradeR | 220 | 本笔实际计划风险。 |
-| c | 0.09R | 本笔成本占比。 |
+| c | 0.09R | 本笔交易前预估成本占比。 |
 | MinPlannedRewardR | 2.5R | 本笔最低计划盈利倍数。 |
 | TargetPrice | 3055 | 风险约束反推出的目标价。 |
 | MaxAllowedMargin | 15,000 | 账户最大允许保证金占用金额。 |
@@ -736,7 +769,7 @@ OneLotMargin = 3,000
 
 1. `AllowedLots` 是否大于等于 1；
 2. `TradeR` 是否小于等于 `AccountR`；
-3. 本笔交易成本是否低于 `PerTradeCostMaxR`；
+3. 本笔交易前预估成本是否低于 `PerTradeCostMaxR`；
 4. 本笔交易后账户保证金占用是否低于 `MaxMarginUsageRatio`；
 5. 是否能根据 `MinPlannedRewardR` 推导出目标价；
 6. 当天是否还允许新开仓；
