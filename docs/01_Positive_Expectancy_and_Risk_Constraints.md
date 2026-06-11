@@ -125,13 +125,25 @@ b 是统计结果，不是单笔计划参数。
 
 ## 6. 最低胜率要求
 
-当平均亏损控制在 `1R` 时：
+更一般地，当平均亏损为 `aR` 时：
+
+```text
+E = p × b - (1 - p) × a - c
+```
+
+要让 `E > 0`，需要满足：
+
+```text
+p > (a + c) / (b + a)
+```
+
+当平均亏损控制在 `1R` 时，即 `a = 1`：
 
 ```text
 E = p × b - (1 - p) - c
 ```
 
-要让 `E > 0`，需要满足：
+公式退化为：
 
 ```text
 p > (1 + c) / (b + 1)
@@ -167,7 +179,7 @@ MinPlannedRewardR = 2.5R
 说明：
 
 ```text
-MinPlannedRewardR 是账户风险约束配置。
+MinPlannedRewardR 是账户风险边界参数。
 b 是历史样本统计出来的平均盈利。
 二者不能混为一个概念。
 ```
@@ -248,8 +260,66 @@ TargetPrice 由风险约束阶段生成，不由行情结构阶段生成。
 
 成本必须在每一笔交易计划中单独计算。
 
+### 9.1 成本字段关系
+
+`RoundTripFeePerLot` 是单手开平合计手续费，来自品种资料或交易所费率。
+
+`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的预估单手总成本。
+
+第一版可以暂时使用：
+
 ```text
-c = 本笔交易总成本 / TradeR
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
+
+后续如果需要更保守，可以增加滑点、价差或冲击成本缓冲：
+
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot + SlippageBufferPerLot + SpreadBufferPerLot + ImpactBufferPerLot
+```
+
+### 9.2 成本计算流程
+
+一手价格风险：
+
+```text
+OneLotPriceRisk = |EntryPrice - StopPrice| × Multiplier
+```
+
+一手计划风险：
+
+```text
+OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot
+```
+
+允许手数：
+
+```text
+AllowedLots = floor(AccountR / OneLotTradeR)
+```
+
+本笔实际计划风险：
+
+```text
+TradeR = OneLotTradeR × AllowedLots
+```
+
+本笔交易总成本：
+
+```text
+TotalTradeCost = EstimatedRoundTripCostPerLot × AllowedLots
+```
+
+成本占比：
+
+```text
+c = TotalTradeCost / TradeR
+```
+
+当 `AllowedLots = 1` 时：
+
+```text
+c = EstimatedRoundTripCostPerLot / OneLotTradeR
 ```
 
 约束规则：
@@ -326,6 +396,16 @@ TradeR = OneLotTradeR × AllowedLots
 ## 12. 每日交易节奏约束
 
 每日交易节奏约束控制当天什么时候停止新开仓。
+
+以下数值是第一版保守初始值，不是数学常数。
+
+后续可以通过回测结果调整，例如：
+
+```text
+DailyLossLimitMultiple ∈ [1.5, 3.0]
+DailyProfitLockMultiple ∈ [1.5, 3.0]
+MaxDailyTrades ∈ [1, 3]
+```
 
 ### 12.1 每日亏损上限
 
@@ -434,6 +514,20 @@ P = q^n
 账户必须能承受 10 × AccountR 的连续亏损
 ```
 
+说明：
+
+```text
+10 × AccountR 是第一版保守承受力要求。
+它不是每日亏损上限，也不是系统预期一定会亏到该金额。
+它用于确认账户规模和单笔风险比例是否匹配低胜率策略。
+```
+
+后续可以把 `MaxConsecutiveLosses` 作为参数调整，例如：
+
+```text
+MaxConsecutiveLosses ∈ [5, 10]
+```
+
 ---
 
 ## 14. 最大回撤约束
@@ -523,6 +617,7 @@ TradeR <= AccountR
 ### 16.2 单笔成本计算
 
 ```text
+TotalTradeCost = 20 × 1 = 20
 c = 20 / 220
 c = 0.09R
 ```
