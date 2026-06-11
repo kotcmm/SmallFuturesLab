@@ -3,13 +3,15 @@ namespace SmallFuturesLab.Core.RiskConstraints;
 /// <summary>
 /// 账户风险边界。
 ///
-/// 这个对象只保存账户层的风险边界，不保存某一笔交易的行情结构。
-/// 参数命名保持和 docs 中的业务术语一致，方便从文档公式直接映射到代码。
+/// 这是账户层的领域值对象，不是配置参数袋。
+/// 构造成功代表这组风险边界已经通过最小合法性检查。
+///
+/// 它只保存账户层风险边界，不保存某一笔交易的行情结构。
 /// </summary>
 public sealed record AccountRiskLimits
 {
     /// <summary>
-    /// 创建账户风险边界。
+    /// 创建一组合法的账户风险边界。
     /// </summary>
     /// <param name="accountEquity">账户权益。</param>
     /// <param name="riskPercentPerTrade">单笔风险比例，例如 0.005 表示 0.5%。</param>
