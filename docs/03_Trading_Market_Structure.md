@@ -65,12 +65,32 @@ TradeSetup
 | TickSize | 最小变动价位 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
 
+说明：
+
+```text
+RoundTripFeePerLot 来自日内候选品种筛选阶段。
+行情结构阶段可以把它转换成风险约束阶段使用的 EstimatedRoundTripCostPerLot。
+第一版默认 EstimatedRoundTripCostPerLot = RoundTripFeePerLot。
+```
+
+后续如果需要更保守，可以在生成 `TradeSetup` 前额外叠加滑点、价差或冲击成本缓冲。
+
 ### 4.2 结构参数
 
 | 参数 | 含义 | 示例 |
 |---|---|---:|
 | OpeningRangeMinutes | 开盘观察窗口分钟数 | 15 |
 | BreakoutOffsetTicks | 突破触发偏移 tick 数 | 1 |
+
+说明：
+
+```text
+BreakoutOffsetTicks = 1 是最敏感设置。
+它适合第一版捕捉所有潜在突破，但也更容易受到假突破影响。
+后续回测时可以把 BreakoutOffsetTicks 作为参数测试，例如 1、2、3。
+```
+
+第一版不直接把默认值改成 2 或 3，因为不同品种的 tick size、波动率和开盘活跃度差异较大。
 
 ### 4.3 盘中行情数据
 
@@ -193,7 +213,19 @@ Direction
 EntryPrice
 StopPrice
 Multiplier
-RoundTripFeePerLot
+EstimatedRoundTripCostPerLot
+```
+
+第一版成本传递规则：
+
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
+
+如果后续需要考虑更保守的执行损耗，可以改为：
+
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot + SlippageBufferPerLot + SpreadBufferPerLot + ImpactBufferPerLot
 ```
 
 风险约束阶段再根据 `MinPlannedRewardR` 计算：
@@ -211,7 +243,7 @@ TradeR
 其中：
 
 ```text
-MinPlannedRewardR 属于账户风险约束配置，不属于行情结构参数。
+MinPlannedRewardR 属于账户风险边界参数，不属于行情结构参数。
 TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 MinPlannedRewardR 推导。
 ```
 
@@ -226,6 +258,14 @@ TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 M
 ```text
 同一品种每天最多执行一次开盘区间突破交易。
 无论止盈还是止损，退出后该品种当天不再生成新的开盘区间突破 TradeSetup。
+```
+
+说明：
+
+```text
+第一版固定 MaxSetupsPerSymbolPerDay = 1。
+这是为了降低重复假突破、过度交易和状态机复杂度。
+后续只有在回测证明有必要时，才考虑放宽到 2 或更多。
 ```
 
 示例：
@@ -269,6 +309,12 @@ MA 当天不再生成新的开盘区间突破 TradeSetup。
 止盈退出 → DoneForDay
 止损退出 → DoneForDay
 风险约束拒绝 → RejectedForDay
+```
+
+说明：
+
+```text
+风险约束阶段返回拒绝结果后，由日内结构状态机把该品种该结构状态更新为 RejectedForDay。
 ```
 
 处于以下状态时，不再生成新的开盘区间突破 `TradeSetup`：
@@ -326,6 +372,7 @@ EntryPrice != StopPrice
 | InvalidReason | 结构失效条件 |
 | SetupPriceRisk | 入场价到止损价的价格距离 |
 | OneLotPriceRisk | 一手价格风险，不含成本 |
+| EstimatedRoundTripCostPerLot | 风险约束阶段使用的预估单手开平总成本 |
 | Status | 结构状态 |
 | RejectReason | 拒绝原因 |
 
@@ -340,6 +387,7 @@ EntryPrice != StopPrice
 | Symbol | MA |
 | Multiplier | 10 |
 | TickSize | 1 |
+| RoundTripFeePerLot | 20 |
 
 结构参数：
 
@@ -376,6 +424,7 @@ Symbol = MA
 Direction = Long
 EntryPrice = 3001
 StopPrice = 2985
+EstimatedRoundTripCostPerLot = 20
 DailyStructureState = SetupGenerated
 ```
 
