@@ -179,7 +179,8 @@ MarginTooHigh → MinimumTradeRTooHigh
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```
 
-后续如果需要更保守，可以在风险约束阶段或交易计划阶段额外叠加滑点、价差和冲击成本缓冲。
+滑点、买卖价差和冲击成本不在候选品种筛选阶段估计。
+这些成本需要在成交后根据交易记录统计。
 
 筛选状态：
 
