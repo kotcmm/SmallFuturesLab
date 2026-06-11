@@ -11,35 +11,35 @@ public sealed record DailyRiskState
     /// <summary>
     /// 创建当日风险状态。
     /// </summary>
-    /// <param name="RealizedPnlToday">当日已实现盈亏；盈利为正，亏损为负。</param>
-    /// <param name="DailyTradeCount">当日已经执行的交易次数。</param>
-    /// <param name="ConsecutiveLosses">当前连续亏损次数。</param>
-    /// <param name="CurrentMarginUsed">当前已经占用的保证金金额。</param>
+    /// <param name="realizedPnlToday">当日已实现盈亏；盈利为正，亏损为负。</param>
+    /// <param name="dailyTradeCount">当日已经执行的交易次数。</param>
+    /// <param name="consecutiveLosses">当前连续亏损次数。</param>
+    /// <param name="currentMarginUsed">当前已经占用的保证金金额。</param>
     public DailyRiskState(
-        double RealizedPnlToday,
-        int DailyTradeCount,
-        int ConsecutiveLosses,
-        double CurrentMarginUsed)
+        double realizedPnlToday,
+        int dailyTradeCount,
+        int consecutiveLosses,
+        double currentMarginUsed)
     {
-        if (DailyTradeCount < 0)
+        if (dailyTradeCount < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(DailyTradeCount), "当日交易次数不能小于 0。");
+            throw new ArgumentOutOfRangeException(nameof(dailyTradeCount), "当日交易次数不能小于 0。");
         }
 
-        if (ConsecutiveLosses < 0)
+        if (consecutiveLosses < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(ConsecutiveLosses), "连续亏损次数不能小于 0。");
+            throw new ArgumentOutOfRangeException(nameof(consecutiveLosses), "连续亏损次数不能小于 0。");
         }
 
-        if (CurrentMarginUsed < 0)
+        if (currentMarginUsed < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(CurrentMarginUsed), "当前保证金占用不能小于 0。");
+            throw new ArgumentOutOfRangeException(nameof(currentMarginUsed), "当前保证金占用不能小于 0。");
         }
 
-        this.RealizedPnlToday = RealizedPnlToday;
-        this.DailyTradeCount = DailyTradeCount;
-        this.ConsecutiveLosses = ConsecutiveLosses;
-        this.CurrentMarginUsed = CurrentMarginUsed;
+        RealizedPnlToday = realizedPnlToday;
+        DailyTradeCount = dailyTradeCount;
+        ConsecutiveLosses = consecutiveLosses;
+        CurrentMarginUsed = currentMarginUsed;
     }
 
     /// <summary>
