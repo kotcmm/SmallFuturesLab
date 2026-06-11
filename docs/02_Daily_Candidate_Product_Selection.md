@@ -26,7 +26,7 @@
 
 筛选依据只有三类：
 
-1. 剩余允许保证金是否够开一手；
+1. 一手保证金占账户权益比例是否过高；
 2. 最小价格跳动压力是否过高；
 3. 手续费压力是否过高。
 
@@ -47,6 +47,8 @@ TradeR
 入场价
 止损价
 盘中结构
+当前可用保证金
+剩余保证金预算
 最多交易品种数
 排序分数
 ```
@@ -73,7 +75,7 @@ TradeR
 
 | 参数 | 含义 | 示例 |
 |---|---|---:|
-| MaxMarginUsageRatio | 账户最大允许保证金占用比例 | 30% |
+| MaxMarginUsageRatio | 单个品种一手保证金允许占账户权益的最大比例 | 30% |
 | MaxTickValuePressureR | 最小价格跳动盈亏允许占 AccountR 的最大比例 | 0.10R |
 | MaxFeePressureR | 单手开平手续费允许占 AccountR 的最大比例 | 0.20R |
 
@@ -86,7 +88,6 @@ TradeR
 | 参数 | 含义 | 示例 |
 |---|---|---:|
 | AccountEquity | 账户权益 | 50,000 |
-| UsedMargin | 当前已占用保证金 | 5,000 |
 | AccountR | 账户单笔风险上限 | 250 |
 
 账户状态不是配置项。
@@ -111,49 +112,33 @@ TradeR
 
 ## 5. 计算公式
 
-### 5.1 剩余允许保证金预算
+### 5.1 一手保证金压力
 
-账户最大允许保证金占用金额：
-
-```text
-MaxAllowedMargin = AccountEquity × MaxMarginUsageRatio
-```
-
-账户剩余允许保证金预算：
-
-```text
-RemainingAllowedMargin = MaxAllowedMargin - UsedMargin
-```
-
-如果：
-
-```text
-RemainingAllowedMargin <= 0
-```
-
-说明账户已经没有新的保证金预算。
-
----
-
-### 5.2 品种一手保证金
+先计算品种一手保证金：
 
 ```text
 OneLotMargin = PreviousSettlementPrice × Multiplier × MarginRate
 ```
 
+再计算一手保证金占账户权益的比例：
+
+```text
+OneLotMarginRatio = OneLotMargin / AccountEquity
+```
+
 判断：
 
 ```text
-OneLotMargin <= RemainingAllowedMargin
+OneLotMarginRatio <= MaxMarginUsageRatio
 ```
 
 含义：
 
-> 检查账户剩余允许保证金预算是否足够开该品种一手。
+> 检查该品种的最小交易单位是否相对账户规模过重。
 
 ---
 
-### 5.3 最小价格跳动压力
+### 5.2 最小价格跳动压力
 
 先计算一跳价值：
 
@@ -179,7 +164,7 @@ TickValuePressureR <= MaxTickValuePressureR
 
 ---
 
-### 5.4 手续费压力
+### 5.3 手续费压力
 
 ```text
 FeePressureR = RoundTripFeePerLot / AccountR
@@ -202,7 +187,7 @@ FeePressureR <= MaxFeePressureR
 一个品种必须同时满足：
 
 ```text
-OneLotMargin <= RemainingAllowedMargin
+OneLotMarginRatio <= MaxMarginUsageRatio
 TickValuePressureR <= MaxTickValuePressureR
 FeePressureR <= MaxFeePressureR
 ```
@@ -225,7 +210,7 @@ FeePressureR <= MaxFeePressureR
 
 | 原因 | 含义 |
 |---|---|
-| InsufficientRemainingAllowedMargin | 剩余允许保证金预算不足以开一手 |
+| MarginUsageTooHigh | 一手保证金占账户权益比例过高 |
 | TickValuePressureTooHigh | 最小价格跳动压力过高 |
 | FeePressureTooHigh | 手续费压力过高 |
 
@@ -234,7 +219,7 @@ FeePressureR <= MaxFeePressureR
 拒绝顺序：
 
 ```text
-InsufficientRemainingAllowedMargin → TickValuePressureTooHigh → FeePressureTooHigh
+MarginUsageTooHigh → TickValuePressureTooHigh → FeePressureTooHigh
 ```
 
 ---
@@ -246,9 +231,8 @@ InsufficientRemainingAllowedMargin → TickValuePressureTooHigh → FeePressureT
 | Symbol | 品种代码 |
 | Status | 筛选状态 |
 | RejectReason | 拒绝原因 |
-| MaxAllowedMargin | 账户最大允许保证金占用金额 |
-| RemainingAllowedMargin | 账户剩余允许保证金预算 |
 | OneLotMargin | 品种一手保证金 |
+| OneLotMarginRatio | 一手保证金占账户权益比例 |
 | TickValue | 一跳价值 |
 | TickValuePressureR | 一跳价值占 AccountR 的比例 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
@@ -278,15 +262,7 @@ InsufficientRemainingAllowedMargin → TickValuePressureTooHigh → FeePressureT
 | 参数 | 数值 |
 |---|---:|
 | AccountEquity | 50,000 |
-| UsedMargin | 5,000 |
 | AccountR | 250 |
-
-账户保证金预算：
-
-```text
-MaxAllowedMargin = 50,000 × 30% = 15,000
-RemainingAllowedMargin = 15,000 - 5,000 = 10,000
-```
 
 ---
 
@@ -306,6 +282,7 @@ RemainingAllowedMargin = 15,000 - 5,000 = 10,000
 
 ```text
 OneLotMargin = 3000 × 10 × 10% = 3000
+OneLotMarginRatio = 3000 / 50000 = 6%
 TickValue = 1 × 10 = 10
 TickValuePressureR = 10 / 250 = 0.04R
 FeePressureR = 10 / 250 = 0.04R
@@ -314,7 +291,7 @@ FeePressureR = 10 / 250 = 0.04R
 判断：
 
 ```text
-3000 <= 10000，通过
+6% <= 30%，通过
 0.04R <= 0.10R，通过
 0.04R <= 0.20R，通过
 ```
@@ -344,6 +321,7 @@ RejectReason = None
 
 ```text
 OneLotMargin = 5000 × 10 × 12% = 6000
+OneLotMarginRatio = 6000 / 50000 = 12%
 TickValue = 5 × 10 = 50
 TickValuePressureR = 50 / 250 = 0.20R
 FeePressureR = 20 / 250 = 0.08R
@@ -352,7 +330,7 @@ FeePressureR = 20 / 250 = 0.08R
 判断：
 
 ```text
-6000 <= 10000，通过
+12% <= 30%，通过
 0.20R <= 0.10R，不通过
 0.08R <= 0.20R，通过
 ```
@@ -382,6 +360,7 @@ RejectReason = TickValuePressureTooHigh
 
 ```text
 OneLotMargin = 12000 × 10 × 15% = 18000
+OneLotMarginRatio = 18000 / 50000 = 36%
 TickValue = 1 × 10 = 10
 TickValuePressureR = 10 / 250 = 0.04R
 FeePressureR = 25 / 250 = 0.10R
@@ -390,7 +369,7 @@ FeePressureR = 25 / 250 = 0.10R
 判断：
 
 ```text
-18000 <= 10000，不通过
+36% <= 30%，不通过
 0.04R <= 0.10R，通过
 0.10R <= 0.20R，通过
 ```
@@ -399,7 +378,7 @@ FeePressureR = 25 / 250 = 0.10R
 
 ```text
 Status = Rejected
-RejectReason = InsufficientRemainingAllowedMargin
+RejectReason = MarginUsageTooHigh
 ```
 
 ---
@@ -420,6 +399,7 @@ RejectReason = InsufficientRemainingAllowedMargin
 
 ```text
 OneLotMargin = 2500 × 10 × 10% = 2500
+OneLotMarginRatio = 2500 / 50000 = 5%
 TickValue = 1 × 10 = 10
 TickValuePressureR = 10 / 250 = 0.04R
 FeePressureR = 18 / 250 = 0.072R
@@ -428,7 +408,7 @@ FeePressureR = 18 / 250 = 0.072R
 判断：
 
 ```text
-2500 <= 10000，通过
+5% <= 30%，通过
 0.04R <= 0.10R，通过
 0.072R <= 0.20R，通过
 ```
@@ -444,12 +424,12 @@ RejectReason = None
 
 ## 10. 最终结果示例
 
-| Symbol | Status | RejectReason | RemainingAllowedMargin | OneLotMargin | TickValuePressureR | FeePressureR |
+| Symbol | Status | RejectReason | OneLotMargin | OneLotMarginRatio | TickValuePressureR | FeePressureR |
 |---|---|---|---:|---:|---:|---:|
-| A | Candidate | None | 10000 | 3000 | 0.04R | 0.04R |
-| B | Rejected | TickValuePressureTooHigh | 10000 | 6000 | 0.20R | 0.08R |
-| C | Rejected | InsufficientRemainingAllowedMargin | 10000 | 18000 | 0.04R | 0.10R |
-| D | Candidate | None | 10000 | 2500 | 0.04R | 0.072R |
+| A | Candidate | None | 3000 | 6% | 0.04R | 0.04R |
+| B | Rejected | TickValuePressureTooHigh | 6000 | 12% | 0.20R | 0.08R |
+| C | Rejected | MarginUsageTooHigh | 18000 | 36% | 0.04R | 0.10R |
+| D | Candidate | None | 2500 | 5% | 0.04R | 0.072R |
 
 最终观察池：
 
@@ -470,10 +450,12 @@ D
 
 日内候选品种筛选的目标是：
 
-> 开盘前用账户配置和账户状态计算剩余允许保证金预算，再检查品种一手保证金、最小价格跳动压力和手续费压力是否适合小资金账户。
+> 开盘前用账户规模和风险边界检查品种属性，排除一手保证金占比、最小价格跳动压力和手续费压力不适合小资金账户的品种。
 
 核心输出：
 
 ```text
 观察池
 ```
+
+保证金是否真正够用、是否允许下单，放到后续交易计划和风控评估阶段处理。
