@@ -8,7 +8,7 @@ namespace SmallFuturesLab.Core.RiskConstraints;
 /// </summary>
 public sealed class RiskConstraint
 {
-    private readonly RiskConstraintConfig config;
+    private readonly RiskConstraintConfig _config;
 
     /// <summary>
     /// 创建风险约束验算器。
@@ -16,7 +16,7 @@ public sealed class RiskConstraint
     /// <param name="config">账户层风险约束配置。</param>
     public RiskConstraint(RiskConstraintConfig config)
     {
-        this.config = config ?? throw new ArgumentNullException(nameof(config));
+        _config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public sealed class RiskConstraint
         }
 
         // AllowedLots = floor(AccountR / OneLotTradeR)。
-        var allowedLots = (int)Math.Floor(config.AccountR / setup.OneLotTradeR);
+        var allowedLots = (int)Math.Floor(_config.AccountR / setup.OneLotTradeR);
 
         // 每日节奏约束优先检查，因为它决定当天是否还能继续评估新计划。
         var rejectReason = GetDailyRejectReason(dailyRiskState);
@@ -67,7 +67,7 @@ public sealed class RiskConstraint
         }
 
         // c = 本笔交易总成本 / TradeR。
-        if (plan.CostInR > config.PerTradeCostMaxR)
+        if (plan.CostInR > _config.PerTradeCostMaxR)
         {
             return plan with
             {
@@ -77,7 +77,7 @@ public sealed class RiskConstraint
         }
 
         // MarginAfterOpen = CurrentMarginUsed + OneLotMargin × AllowedLots。
-        if (plan.MarginAfterOpen > config.MaxAllowedMargin)
+        if (plan.MarginAfterOpen > _config.MaxAllowedMargin)
         {
             return plan with
             {
@@ -94,22 +94,22 @@ public sealed class RiskConstraint
     /// </summary>
     private RiskRejectReason GetDailyRejectReason(DailyRiskState dailyRiskState)
     {
-        if (dailyRiskState.RealizedLossToday >= config.DailyLossLimit)
+        if (dailyRiskState.RealizedLossToday >= _config.DailyLossLimit)
         {
             return RiskRejectReason.DailyLossLimitReached;
         }
 
-        if (dailyRiskState.RealizedPnlToday >= config.DailyProfitLockR)
+        if (dailyRiskState.RealizedPnlToday >= _config.DailyProfitLockR)
         {
             return RiskRejectReason.DailyProfitLockReached;
         }
 
-        if (dailyRiskState.DailyTradeCount >= config.MaxDailyTrades)
+        if (dailyRiskState.DailyTradeCount >= _config.MaxDailyTrades)
         {
             return RiskRejectReason.MaxDailyTradesReached;
         }
 
-        if (dailyRiskState.ConsecutiveLosses >= config.MaxConsecutiveLosses)
+        if (dailyRiskState.ConsecutiveLosses >= _config.MaxConsecutiveLosses)
         {
             return RiskRejectReason.ConsecutiveLossLimitReached;
         }
@@ -136,7 +136,7 @@ public sealed class RiskConstraint
             : 0;
 
         // RequiredRewardAmount = OneLotTradeR × MinPlannedRewardR。
-        var requiredRewardAmount = setup.OneLotTradeR * config.MinPlannedRewardR;
+        var requiredRewardAmount = setup.OneLotTradeR * _config.MinPlannedRewardR;
 
         // TargetPriceDistance = RequiredRewardAmount / Multiplier。
         var targetPriceDistance = requiredRewardAmount / setup.Multiplier;
@@ -149,22 +149,22 @@ public sealed class RiskConstraint
         var marginAfterOpen = dailyRiskState.CurrentMarginUsed + setup.OneLotMargin * allowedLots;
 
         return new TradePlan(
-            Symbol: setup.Symbol,
-            Status: status,
-            RejectReason: rejectReason,
-            Direction: setup.Direction,
-            AccountR: config.AccountR,
-            SetupPriceRisk: setup.SetupPriceRisk,
-            OneLotPriceRisk: setup.OneLotPriceRisk,
-            OneLotTradeR: setup.OneLotTradeR,
-            AllowedLots: allowedLots,
-            TradeR: tradeR,
-            CostInR: costInR,
-            RequiredRewardAmount: requiredRewardAmount,
-            TargetPriceDistance: targetPriceDistance,
-            TargetPrice: targetPrice,
-            MaxAllowedMargin: config.MaxAllowedMargin,
-            MarginAfterOpen: marginAfterOpen);
+            symbol: setup.Symbol,
+            status: status,
+            rejectReason: rejectReason,
+            direction: setup.Direction,
+            accountR: _config.AccountR,
+            setupPriceRisk: setup.SetupPriceRisk,
+            oneLotPriceRisk: setup.OneLotPriceRisk,
+            oneLotTradeR: setup.OneLotTradeR,
+            allowedLots: allowedLots,
+            tradeR: tradeR,
+            costInR: costInR,
+            requiredRewardAmount: requiredRewardAmount,
+            targetPriceDistance: targetPriceDistance,
+            targetPrice: targetPrice,
+            maxAllowedMargin: _config.MaxAllowedMargin,
+            marginAfterOpen: marginAfterOpen);
     }
 
     /// <summary>
@@ -176,22 +176,22 @@ public sealed class RiskConstraint
         RiskRejectReason rejectReason)
     {
         return new TradePlan(
-            Symbol: setup.Symbol,
-            Status: TradePlanStatus.Rejected,
-            RejectReason: rejectReason,
-            Direction: setup.Direction,
-            AccountR: config.AccountR,
-            SetupPriceRisk: setup.SetupPriceRisk,
-            OneLotPriceRisk: 0,
-            OneLotTradeR: 0,
-            AllowedLots: 0,
-            TradeR: 0,
-            CostInR: 0,
-            RequiredRewardAmount: 0,
-            TargetPriceDistance: 0,
-            TargetPrice: 0,
-            MaxAllowedMargin: config.MaxAllowedMargin,
-            MarginAfterOpen: dailyRiskState.CurrentMarginUsed);
+            symbol: setup.Symbol,
+            status: TradePlanStatus.Rejected,
+            rejectReason: rejectReason,
+            direction: setup.Direction,
+            accountR: _config.AccountR,
+            setupPriceRisk: setup.SetupPriceRisk,
+            oneLotPriceRisk: 0,
+            oneLotTradeR: 0,
+            allowedLots: 0,
+            tradeR: 0,
+            costInR: 0,
+            requiredRewardAmount: 0,
+            targetPriceDistance: 0,
+            targetPrice: 0,
+            maxAllowedMargin: _config.MaxAllowedMargin,
+            marginAfterOpen: dailyRiskState.CurrentMarginUsed);
     }
 
     /// <summary>
