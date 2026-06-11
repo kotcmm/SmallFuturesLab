@@ -32,8 +32,6 @@
 
 通过基础条件的品种全部进入观察池。
 
-排序只用于展示优先级，不用于强制截断。
-
 ---
 
 ## 3. 核心边界
@@ -50,6 +48,7 @@ TradeR
 止损价
 盘中结构
 最多交易品种数
+排序分数
 ```
 
 这些内容放到后续交易结构和风险控制阶段处理。
@@ -176,32 +175,7 @@ MarginTooHigh → TickValueTooLarge → FeeTooHigh
 
 ---
 
-## 8. 排序
-
-排序只用于展示观察优先级。
-
-排序不用于排除品种。
-
-排序原则：
-
-1. 一手保证金越低越靠前；
-2. 一跳价值越小越靠前；
-3. 单手开平手续费越低越靠前。
-
-排序公式：
-
-```text
-Score =
-  OneLotMargin / MaxOneLotMargin
-+ TickValue / MaxTickValue
-+ RoundTripFeePerLot / MaxRoundTripFeePerLot
-```
-
-`Score` 越小，观察优先级越高。
-
----
-
-## 9. 输出字段
+## 8. 输出字段
 
 | 字段 | 含义 |
 |---|---|
@@ -211,7 +185,6 @@ Score =
 | OneLotMargin | 一手保证金 |
 | TickValue | 一跳价值 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
-| Score | 排序分数 |
 
 筛选状态：
 
@@ -222,7 +195,7 @@ Score =
 
 ---
 
-## 10. 完整算例
+## 9. 完整算例
 
 筛选阈值：
 
@@ -234,7 +207,7 @@ Score =
 
 ---
 
-### 10.1 品种 A
+### 9.1 品种 A
 
 输入：
 
@@ -271,7 +244,7 @@ RejectReason = None
 
 ---
 
-### 10.2 品种 B
+### 9.2 品种 B
 
 输入：
 
@@ -308,7 +281,7 @@ RejectReason = TickValueTooLarge
 
 ---
 
-### 10.3 品种 C
+### 9.3 品种 C
 
 输入：
 
@@ -345,7 +318,7 @@ RejectReason = MarginTooHigh
 
 ---
 
-### 10.4 品种 D
+### 9.4 品种 D
 
 输入：
 
@@ -382,14 +355,14 @@ RejectReason = None
 
 ---
 
-## 11. 最终结果示例
+## 10. 最终结果示例
 
-| Symbol | Status | RejectReason | OneLotMargin | TickValue | RoundTripFeePerLot | Score |
-|---|---|---|---:|---:|---:|---:|
-| D | Candidate | None | 2500 | 10 | 18 | 1.31 |
-| A | Candidate | None | 3000 | 10 | 10 | 1.08 |
-| B | Rejected | TickValueTooLarge | 6000 | 50 | 20 | - |
-| C | Rejected | MarginTooHigh | 18000 | 10 | 25 | - |
+| Symbol | Status | RejectReason | OneLotMargin | TickValue | RoundTripFeePerLot |
+|---|---|---|---:|---:|---:|
+| A | Candidate | None | 3000 | 10 | 10 |
+| B | Rejected | TickValueTooLarge | 6000 | 50 | 20 |
+| C | Rejected | MarginTooHigh | 18000 | 10 | 25 |
+| D | Candidate | None | 2500 | 10 | 18 |
 
 最终观察池：
 
@@ -402,12 +375,11 @@ D
 
 ```text
 所有通过基础条件的品种都进入观察池。
-排序只表示观察优先级，不会因为数量多而截断。
 ```
 
 ---
 
-## 12. 结论
+## 11. 结论
 
 日内候选品种筛选的目标是：
 
