@@ -64,6 +64,21 @@
 OneLotMargin = PreviousSettlementPrice × Multiplier × MarginRate
 ```
 
+说明：
+
+```text
+这是开盘前的初步估算，用于候选品种筛选。
+由于今日价格可能相对昨日结算价变化，实际下单前仍需要使用最新保证金数据或更保守估算。
+```
+
+可选的保守估算方式：
+
+```text
+EstimatedOneLotMargin = PreviousSettlementPrice × 1.05 × Multiplier × MarginRate
+```
+
+第一版默认仍使用 `OneLotMargin`，是否启用 `EstimatedOneLotMargin` 由后续回测和实盘风控需要决定。
+
 再计算账户允许的保证金占用金额：
 
 ```text
@@ -109,6 +124,13 @@ MinimumOneLotTradeR <= AccountR
 含义：
 
 > 如果价格只反向跳一跳，加上单手开平手续费，就已经超过账户单笔风险上限，这个品种不适合当前小资金账户。
+
+说明：
+
+```text
+这是最小可交易性硬过滤，不是盈利质量过滤。
+如果 MinimumOneLotTradeR > AccountR，则该品种在当前账户规模下不存在任何合规的一手交易结构。
+```
 
 不满足则排除。
 
@@ -161,6 +183,18 @@ MarginTooHigh → MinimumTradeRTooHigh
 | TickValue | 一跳价值 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
 | MinimumOneLotTradeR | 一手最小可能交易风险 |
+
+### 7.1 成本字段传递说明
+
+`RoundTripFeePerLot` 会传递给后续行情结构阶段。
+
+第一版可以在后续风险约束阶段令：
+
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
+
+后续如果需要更保守，可以在风险约束阶段或交易计划阶段额外叠加滑点、价差和冲击成本缓冲。
 
 筛选状态：
 
