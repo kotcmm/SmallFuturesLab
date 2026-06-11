@@ -173,7 +173,7 @@ MarginTooHigh → MinimumTradeRTooHigh
 
 `RoundTripFeePerLot` 会传递给后续行情结构阶段。
 
-第一版可以在后续风险约束阶段令：
+当前默认在后续风险约束阶段令：
 
 ```text
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
