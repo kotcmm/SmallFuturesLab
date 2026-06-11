@@ -11,18 +11,18 @@ public sealed class RiskConstraintTests
 
         var plan = constraint.Evaluate(
             new TradeSetup(
-                Symbol: "MA",
-                Direction: TradeDirection.Long,
-                EntryPrice: 3000,
-                StopPrice: 2980,
-                Multiplier: 10,
-                EstimatedRoundTripCostPerLot: 20,
-                OneLotMargin: 3000),
+                symbol: "MA",
+                direction: TradeDirection.Long,
+                entryPrice: 3000,
+                stopPrice: 2980,
+                multiplier: 10,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
             new DailyRiskState(
-                RealizedPnlToday: 260,
-                DailyTradeCount: 1,
-                ConsecutiveLosses: 0,
-                CurrentMarginUsed: 0));
+                realizedPnlToday: 260,
+                dailyTradeCount: 1,
+                consecutiveLosses: 0,
+                currentMarginUsed: 0));
 
         Assert.Equal(TradePlanStatus.Accepted, plan.Status);
         Assert.Equal(RiskRejectReason.None, plan.RejectReason);
@@ -47,13 +47,13 @@ public sealed class RiskConstraintTests
 
         var plan = constraint.Evaluate(
             new TradeSetup(
-                Symbol: "MA",
-                Direction: TradeDirection.Short,
-                EntryPrice: 2980,
-                StopPrice: 3000,
-                Multiplier: 10,
-                EstimatedRoundTripCostPerLot: 20,
-                OneLotMargin: 3000),
+                symbol: "MA",
+                direction: TradeDirection.Short,
+                entryPrice: 2980,
+                stopPrice: 3000,
+                multiplier: 10,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Accepted, plan.Status);
@@ -68,10 +68,10 @@ public sealed class RiskConstraintTests
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
-                RealizedPnlToday: -500,
-                DailyTradeCount: 0,
-                ConsecutiveLosses: 0,
-                CurrentMarginUsed: 0));
+                realizedPnlToday: -500,
+                dailyTradeCount: 0,
+                consecutiveLosses: 0,
+                currentMarginUsed: 0));
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.DailyLossLimitReached, plan.RejectReason);
@@ -85,10 +85,10 @@ public sealed class RiskConstraintTests
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
-                RealizedPnlToday: 500,
-                DailyTradeCount: 0,
-                ConsecutiveLosses: 0,
-                CurrentMarginUsed: 0));
+                realizedPnlToday: 500,
+                dailyTradeCount: 0,
+                consecutiveLosses: 0,
+                currentMarginUsed: 0));
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.DailyProfitLockReached, plan.RejectReason);
@@ -102,10 +102,10 @@ public sealed class RiskConstraintTests
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
-                RealizedPnlToday: 0,
-                DailyTradeCount: 3,
-                ConsecutiveLosses: 0,
-                CurrentMarginUsed: 0));
+                realizedPnlToday: 0,
+                dailyTradeCount: 3,
+                consecutiveLosses: 0,
+                currentMarginUsed: 0));
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.MaxDailyTradesReached, plan.RejectReason);
@@ -119,10 +119,10 @@ public sealed class RiskConstraintTests
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
-                RealizedPnlToday: 0,
-                DailyTradeCount: 0,
-                ConsecutiveLosses: 10,
-                CurrentMarginUsed: 0));
+                realizedPnlToday: 0,
+                dailyTradeCount: 0,
+                consecutiveLosses: 10,
+                currentMarginUsed: 0));
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.ConsecutiveLossLimitReached, plan.RejectReason);
@@ -135,13 +135,13 @@ public sealed class RiskConstraintTests
 
         var plan = constraint.Evaluate(
             new TradeSetup(
-                Symbol: "MA",
-                Direction: TradeDirection.Long,
-                EntryPrice: 3000,
-                StopPrice: 2900,
-                Multiplier: 10,
-                EstimatedRoundTripCostPerLot: 20,
-                OneLotMargin: 3000),
+                symbol: "MA",
+                direction: TradeDirection.Long,
+                entryPrice: 3000,
+                stopPrice: 2900,
+                multiplier: 10,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
@@ -156,13 +156,13 @@ public sealed class RiskConstraintTests
 
         var plan = constraint.Evaluate(
             new TradeSetup(
-                Symbol: "MA",
-                Direction: TradeDirection.Long,
-                EntryPrice: 100,
-                StopPrice: 99,
-                Multiplier: 10,
-                EstimatedRoundTripCostPerLot: 10,
-                OneLotMargin: 1000),
+                symbol: "MA",
+                direction: TradeDirection.Long,
+                entryPrice: 100,
+                stopPrice: 99,
+                multiplier: 10,
+                estimatedRoundTripCostPerLot: 10,
+                oneLotMargin: 1000),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
@@ -178,10 +178,10 @@ public sealed class RiskConstraintTests
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
-                RealizedPnlToday: 0,
-                DailyTradeCount: 0,
-                ConsecutiveLosses: 0,
-                CurrentMarginUsed: 14000));
+                realizedPnlToday: 0,
+                dailyTradeCount: 0,
+                consecutiveLosses: 0,
+                currentMarginUsed: 14000));
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.MarginUsageExceeded, plan.RejectReason);
@@ -195,13 +195,13 @@ public sealed class RiskConstraintTests
 
         var plan = constraint.Evaluate(
             new TradeSetup(
-                Symbol: "MA",
-                Direction: TradeDirection.Long,
-                EntryPrice: 3000,
-                StopPrice: 2980,
-                Multiplier: 0,
-                EstimatedRoundTripCostPerLot: 20,
-                OneLotMargin: 3000),
+                symbol: "MA",
+                direction: TradeDirection.Long,
+                entryPrice: 3000,
+                stopPrice: 2980,
+                multiplier: 0,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
@@ -213,35 +213,35 @@ public sealed class RiskConstraintTests
     private static RiskConstraintConfig DefaultConfig()
     {
         return new RiskConstraintConfig(
-            AccountEquity: 50000,
-            RiskPercentPerTrade: 0.005,
-            MinPlannedRewardR: 2.5,
-            PerTradeCostMaxR: 0.20,
-            MaxMarginUsageRatio: 0.30,
-            DailyLossLimitMultiple: 2,
-            DailyProfitLockMultiple: 2,
-            MaxDailyTrades: 3,
-            MaxConsecutiveLosses: 10);
+            accountEquity: 50000,
+            riskPercentPerTrade: 0.005,
+            minPlannedRewardR: 2.5,
+            perTradeCostMaxR: 0.20,
+            maxMarginUsageRatio: 0.30,
+            dailyLossLimitMultiple: 2,
+            dailyProfitLockMultiple: 2,
+            maxDailyTrades: 3,
+            maxConsecutiveLosses: 10);
     }
 
     private static DailyRiskState DefaultDailyState()
     {
         return new DailyRiskState(
-            RealizedPnlToday: 260,
-            DailyTradeCount: 1,
-            ConsecutiveLosses: 0,
-            CurrentMarginUsed: 0);
+            realizedPnlToday: 260,
+            dailyTradeCount: 1,
+            consecutiveLosses: 0,
+            currentMarginUsed: 0);
     }
 
     private static TradeSetup DefaultTradeSetup()
     {
         return new TradeSetup(
-            Symbol: "MA",
-            Direction: TradeDirection.Long,
-            EntryPrice: 3000,
-            StopPrice: 2980,
-            Multiplier: 10,
-            EstimatedRoundTripCostPerLot: 20,
-            OneLotMargin: 3000);
+            symbol: "MA",
+            direction: TradeDirection.Long,
+            entryPrice: 3000,
+            stopPrice: 2980,
+            multiplier: 10,
+            estimatedRoundTripCostPerLot: 20,
+            oneLotMargin: 3000);
     }
 }
