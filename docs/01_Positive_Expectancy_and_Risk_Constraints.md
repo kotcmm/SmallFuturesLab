@@ -266,7 +266,7 @@ TargetPrice 由风险约束阶段生成，不由行情结构阶段生成。
 
 `EstimatedRoundTripCostPerLot` 是风险约束阶段使用的预估单手总成本。
 
-第一版可以暂时使用：
+当前默认使用：
 
 ```text
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
@@ -397,7 +397,7 @@ TradeR = OneLotTradeR × AllowedLots
 
 每日交易节奏约束控制当天什么时候停止新开仓。
 
-以下数值是第一版保守初始值，不是数学常数。
+以下数值是当前保守初始值，不是数学常数。
 
 后续可以通过回测结果调整，例如：
 
@@ -517,7 +517,7 @@ P = q^n
 说明：
 
 ```text
-10 × AccountR 是第一版保守承受力要求。
+10 × AccountR 是当前保守承受力要求。
 它不是每日亏损上限，也不是系统预期一定会亏到该金额。
 它用于确认账户规模和单笔风险比例是否匹配低胜率策略。
 ```
