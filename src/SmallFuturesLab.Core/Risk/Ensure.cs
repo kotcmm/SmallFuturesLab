@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 领域值对象的最小合法性校验工具。

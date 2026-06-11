@@ -1,6 +1,6 @@
-using SmallFuturesLab.Core.RiskConstraints;
+using SmallFuturesLab.Core.Risk;
 
-namespace SmallFuturesLab.Core.Tests.RiskConstraints;
+namespace SmallFuturesLab.Core.Tests.Risk;
 
 public sealed class RiskConstraintTests
 {

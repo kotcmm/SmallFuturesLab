@@ -1,4 +1,4 @@
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 风险约束拒绝原因。

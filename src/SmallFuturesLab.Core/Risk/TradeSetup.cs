@@ -1,10 +1,10 @@
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 交易结构输入。
 ///
 /// TradeSetup 来自行情结构模块。它只描述“如果要做这笔交易，在哪里进场，在哪里证明错了”。
-/// 目标价、手数、TradeR 和是否允许交易，都由风险约束模块推导。
+/// 目标价、手数、TradeR 和是否允许交易，都由风险模块推导。
 /// </summary>
 public sealed record TradeSetup
 {
@@ -16,7 +16,7 @@ public sealed record TradeSetup
     /// <param name="entryPrice">计划入场价。</param>
     /// <param name="stopPrice">计划止损价。</param>
     /// <param name="multiplier">合约乘数。</param>
-    /// <param name="estimatedRoundTripCostPerLot">预估单手开平总成本，包含手续费、滑点、价差等。</param>
+    /// <param name="estimatedRoundTripCostPerLot">交易前预估单手开平总成本。</param>
     /// <param name="oneLotMargin">单手保证金。</param>
     public TradeSetup(
         string symbol,
@@ -62,7 +62,7 @@ public sealed record TradeSetup
     public double Multiplier { get; init; }
 
     /// <summary>
-    /// 预估单手开平总成本，包含手续费、滑点、价差等。
+    /// 交易前预估单手开平总成本。
     /// </summary>
     public double EstimatedRoundTripCostPerLot { get; init; }
 
@@ -88,7 +88,7 @@ public sealed record TradeSetup
     /// <summary>
     /// OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot。
     ///
-    /// 含义：一手计划风险，包含价格风险和预估交易成本。
+    /// 含义：一手计划风险，包含价格风险和交易前预估成本。
     /// </summary>
     public double OneLotTradeR => OneLotPriceRisk + EstimatedRoundTripCostPerLot;
 }

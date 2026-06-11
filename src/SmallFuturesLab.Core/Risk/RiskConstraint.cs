@@ -1,4 +1,4 @@
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 风险约束验算器。
@@ -66,7 +66,7 @@ public sealed class RiskConstraint
             return plan;
         }
 
-        // c = 本笔交易总成本 / TradeR。
+        // c = 本笔交易前预估总成本 / TradeR。
         if (plan.CostInR > _limits.PerTradeCostMaxR)
         {
             return plan with
@@ -130,7 +130,7 @@ public sealed class RiskConstraint
         // TradeR = OneLotTradeR × AllowedLots。
         var tradeR = setup.OneLotTradeR * allowedLots;
 
-        // CostInR = 本笔交易总成本 / TradeR。
+        // CostInR = 本笔交易前预估总成本 / TradeR。
         var costInR = tradeR > 0
             ? setup.EstimatedRoundTripCostPerLot * allowedLots / tradeR
             : 0;

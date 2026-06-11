@@ -1,4 +1,4 @@
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 风险约束验算后的交易计划。
@@ -18,10 +18,10 @@ public sealed record TradePlan
     /// <param name="accountR">账户允许的单笔风险上限。</param>
     /// <param name="setupPriceRisk">入场价到止损价之间的价格距离。</param>
     /// <param name="oneLotPriceRisk">一手价格风险，不含成本。</param>
-    /// <param name="oneLotTradeR">一手计划风险，包含预估交易成本。</param>
+    /// <param name="oneLotTradeR">一手计划风险，包含交易前预估成本。</param>
     /// <param name="allowedLots">风险约束允许的手数。</param>
     /// <param name="tradeR">本笔交易实际计划风险。</param>
-    /// <param name="costInR">本笔交易成本占 TradeR 的比例。</param>
+    /// <param name="costInR">本笔交易前预估成本占 TradeR 的比例。</param>
     /// <param name="requiredRewardAmount">为了满足 MinPlannedRewardR 所需的最低盈利金额。</param>
     /// <param name="targetPriceDistance">目标价距离入场价的价格距离。</param>
     /// <param name="targetPrice">由风险约束阶段推导出的目标价。</param>
@@ -99,7 +99,7 @@ public sealed record TradePlan
     public double OneLotPriceRisk { get; init; }
 
     /// <summary>
-    /// 一手计划风险，包含预估交易成本。
+    /// 一手计划风险，包含交易前预估成本。
     /// </summary>
     public double OneLotTradeR { get; init; }
 
@@ -114,7 +114,7 @@ public sealed record TradePlan
     public double TradeR { get; init; }
 
     /// <summary>
-    /// 本笔交易成本占 TradeR 的比例。
+    /// 本笔交易前预估成本占 TradeR 的比例。
     /// </summary>
     public double CostInR { get; init; }
 

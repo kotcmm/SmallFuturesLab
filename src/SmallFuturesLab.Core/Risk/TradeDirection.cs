@@ -1,9 +1,9 @@
-namespace SmallFuturesLab.Core.RiskConstraints;
+namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
 /// 交易方向。
 ///
-/// 风险约束模块不判断方向是否有行情优势，只根据方向决定目标价是在入场价上方还是下方。
+/// 风险模块不判断方向是否有行情优势，只根据方向决定目标价是在入场价上方还是下方。
 /// </summary>
 public enum TradeDirection
 {
