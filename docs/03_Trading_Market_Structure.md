@@ -73,7 +73,8 @@ RoundTripFeePerLot 来自日内候选品种筛选阶段。
 当前默认 EstimatedRoundTripCostPerLot = RoundTripFeePerLot。
 ```
 
-后续如果需要更保守，可以在生成 `TradeSetup` 前额外叠加滑点、价差或冲击成本缓冲。
+滑点、买卖价差和冲击成本不在行情结构阶段估计。
+这些成本需要在成交后根据交易记录统计。
 
 ### 4.2 结构参数
 
@@ -222,10 +223,12 @@ EstimatedRoundTripCostPerLot
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```
 
-如果后续需要考虑更保守的执行损耗，可以改为：
+说明：
 
 ```text
-EstimatedRoundTripCostPerLot = RoundTripFeePerLot + SlippageBufferPerLot + SpreadBufferPerLot + ImpactBufferPerLot
+EstimatedRoundTripCostPerLot 当前只表示交易前可相对稳定估计的单手成本。
+滑点、买卖价差和冲击成本不在行情结构阶段估计。
+这些成本在成交后进入实际交易记录和复盘统计。
 ```
 
 风险约束阶段再根据 `MinPlannedRewardR` 计算：
@@ -235,7 +238,7 @@ TargetPrice
 OneLotTradeR
 AllowedLots
 TradeR
-成本占比 c
+交易前预估成本占比 c
 保证金占用是否合格
 最终是否允许交易
 ```
@@ -372,7 +375,7 @@ EntryPrice != StopPrice
 | InvalidReason | 结构失效条件 |
 | SetupPriceRisk | 入场价到止损价的价格距离 |
 | OneLotPriceRisk | 一手价格风险，不含成本 |
-| EstimatedRoundTripCostPerLot | 风险约束阶段使用的预估单手开平总成本 |
+| EstimatedRoundTripCostPerLot | 风险约束阶段使用的交易前预估单手成本 |
 | Status | 结构状态 |
 | RejectReason | 拒绝原因 |
 
