@@ -84,7 +84,7 @@ MarketImpactCost = 50
 
 ## 4. 和 EstimatedRoundTripCostPerLot 的关系
 
-`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的预估单手总成本。
+`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的交易前预估单手成本。
 
 当前默认：
 
@@ -92,20 +92,33 @@ MarketImpactCost = 50
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```
 
-如果后续需要更保守，可以把冲击成本缓冲加入预估成本：
+含义：
 
 ```text
-EstimatedRoundTripCostPerLot = RoundTripFeePerLot + SlippageBufferPerLot + SpreadBufferPerLot + ImpactBufferPerLot
+交易前风险约束只使用可相对稳定估计的手续费。
+冲击成本不进入当前默认的 EstimatedRoundTripCostPerLot。
+```
+
+原因：
+
+1. 冲击成本只有成交后才能确认；
+2. 冲击成本依赖盘口深度、下单手数、成交路径和当时市场状态；
+3. 交易前把冲击成本写成固定配置，容易制造虚假的精确感。
+
+成交后再记录实际成本：
+
+```text
+ActualRoundTripCost = ActualFee + ActualSlippageCost + ActualSpreadCost + ActualMarketImpactCost
 ```
 
 其中：
 
 | 字段 | 含义 |
 |---|---|
-| RoundTripFeePerLot | 单手开平合计手续费。 |
-| SlippageBufferPerLot | 单手滑点缓冲。 |
-| SpreadBufferPerLot | 单手买卖价差缓冲。 |
-| ImpactBufferPerLot | 单手冲击成本缓冲。 |
+| ActualFee | 实际手续费。 |
+| ActualSlippageCost | 实际滑点成本。 |
+| ActualSpreadCost | 实际买卖价差成本。 |
+| ActualMarketImpactCost | 实际冲击成本。 |
 
 ---
 
@@ -123,35 +136,49 @@ TradeR = OneLotTradeR × AllowedLots
 OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot
 ```
 
-如果 `EstimatedRoundTripCostPerLot` 中包含冲击成本缓冲，则冲击成本会进入 `TradeR`。
+当前默认下：
 
-如果 `EstimatedRoundTripCostPerLot` 中不包含冲击成本缓冲，则冲击成本只会在交易完成后体现在实际盈亏里。
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
 
-这会影响统计出来的：
+所以冲击成本不会提前进入 `TradeR`。
+
+冲击成本会在交易完成后体现在实际盈亏和实际成本统计里，并影响：
 
 ```text
 a = 实际平均亏损 / TradeR
-c = 本笔交易总成本 / TradeR
+ActualCostR = ActualRoundTripCost / TradeR
 ```
+
+如果长期出现：
+
+```text
+实际平均亏损明显高于 TradeR
+ActualCostR 明显高于交易前预估成本占比 c
+```
+
+说明执行质量、盘口流动性或成本模型需要复盘。
 
 ---
 
 ## 6. 使用方式
 
-当前规则中，冲击成本只保留为成本概念，不单独建模。
+当前规则中，冲击成本只作为成交后统计项，不作为交易前风险约束输入。
 
-默认处理方式：
+交易前：
 
 ```text
-ImpactBufferPerLot = 0
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```
 
-原因：
+成交后：
 
-1. 小资金账户通常交易手数较小；
-2. 当前阶段更需要先把风险约束链路跑通；
-3. 冲击成本需要盘口深度和成交明细，数据要求更高。
+```text
+记录 ActualMarketImpactCost
+统计 ActualRoundTripCost
+复盘 ActualCostR
+```
 
 后续如果出现以下情况，需要重新评估冲击成本：
 
@@ -159,7 +186,14 @@ EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 2. 交易品种盘口深度较差；
 3. 实际成交均价长期明显劣于触发价；
 4. 实际平均亏损长期高于计划亏损；
-5. 成本占比 `c` 长期高于预估。
+5. 实际成本占比长期高于交易前预估。
+
+重新评估时，优先检查：
+
+1. 是否应该减少下单手数；
+2. 是否应该过滤流动性更差的品种；
+3. 是否应该调整下单方式；
+4. 是否需要在交易计划阶段引入更保守的成本模型。
 
 ---
 
@@ -167,12 +201,12 @@ EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 
 冲击成本不是固定手续费。
 
-它来自订单本身对盘口的影响。
+它来自订单本身对盘口的影响，并且只能在成交后确认。
 
 在当前规则中：
 
 ```text
-冲击成本先不单独建模。
+冲击成本不进入交易前风险约束输入。
 ```
 
 但在交易记录和复盘中，需要持续观察：
@@ -180,7 +214,7 @@ EstimatedRoundTripCostPerLot = RoundTripFeePerLot
 ```text
 实际成交均价是否长期劣于计划价
 实际平均亏损是否长期高于 TradeR
-实际成本占比是否长期高于预估 c
+实际成本占比是否长期高于交易前预估
 ```
 
-如果这些问题长期存在，就需要把 `ImpactBufferPerLot` 纳入 `EstimatedRoundTripCostPerLot`。
+如果这些问题长期存在，应该先复盘执行质量和品种流动性，再决定是否调整成本模型。
