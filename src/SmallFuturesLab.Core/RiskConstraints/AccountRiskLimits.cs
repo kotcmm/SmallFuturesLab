@@ -33,60 +33,43 @@ public sealed record AccountRiskLimits
         int maxDailyTrades,
         int maxConsecutiveLosses)
     {
-        if (accountEquity <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(accountEquity), "账户权益必须大于 0。");
-        }
+        AccountEquity = Ensure.Positive(
+            accountEquity,
+            "账户权益必须大于 0。");
 
-        if (riskPercentPerTrade <= 0 || riskPercentPerTrade > 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(riskPercentPerTrade), "单笔风险比例必须在 (0, 1] 内。");
-        }
+        RiskPercentPerTrade = Ensure.Ratio(
+            riskPercentPerTrade,
+            "单笔风险比例必须在 (0, 1] 内。");
 
-        if (minPlannedRewardR <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(minPlannedRewardR), "最低计划盈利倍数必须大于 0。");
-        }
+        MinPlannedRewardR = Ensure.Positive(
+            minPlannedRewardR,
+            "最低计划盈利倍数必须大于 0。");
 
-        if (perTradeCostMaxR < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(perTradeCostMaxR), "单笔成本上限不能小于 0。");
-        }
+        PerTradeCostMaxR = Ensure.NonNegative(
+            perTradeCostMaxR,
+            "单笔成本上限不能小于 0。");
 
-        if (maxMarginUsageRatio <= 0 || maxMarginUsageRatio > 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxMarginUsageRatio), "最大保证金占用比例必须在 (0, 1] 内。");
-        }
+        MaxMarginUsageRatio = Ensure.Ratio(
+            maxMarginUsageRatio,
+            "最大保证金占用比例必须在 (0, 1] 内。");
 
-        if (dailyLossLimitMultiple <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(dailyLossLimitMultiple), "每日亏损上限倍数必须大于 0。");
-        }
+        DailyLossLimitMultiple = Ensure.Positive(
+            dailyLossLimitMultiple,
+            "每日亏损上限倍数必须大于 0。");
 
-        if (dailyProfitLockMultiple <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(dailyProfitLockMultiple), "每日盈利保护倍数必须大于 0。");
-        }
+        DailyProfitLockMultiple = Ensure.Positive(
+            dailyProfitLockMultiple,
+            "每日盈利保护倍数必须大于 0。");
 
-        if (maxDailyTrades < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxDailyTrades), "每日最多交易次数必须至少为 1。");
-        }
+        MaxDailyTrades = Ensure.AtLeast(
+            maxDailyTrades,
+            minimum: 1,
+            "每日最多交易次数必须至少为 1。");
 
-        if (maxConsecutiveLosses < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxConsecutiveLosses), "连续亏损暂停笔数必须至少为 1。");
-        }
-
-        AccountEquity = accountEquity;
-        RiskPercentPerTrade = riskPercentPerTrade;
-        MinPlannedRewardR = minPlannedRewardR;
-        PerTradeCostMaxR = perTradeCostMaxR;
-        MaxMarginUsageRatio = maxMarginUsageRatio;
-        DailyLossLimitMultiple = dailyLossLimitMultiple;
-        DailyProfitLockMultiple = dailyProfitLockMultiple;
-        MaxDailyTrades = maxDailyTrades;
-        MaxConsecutiveLosses = maxConsecutiveLosses;
+        MaxConsecutiveLosses = Ensure.AtLeast(
+            maxConsecutiveLosses,
+            minimum: 1,
+            "连续亏损暂停笔数必须至少为 1。");
     }
 
     /// <summary>
