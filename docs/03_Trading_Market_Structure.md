@@ -217,7 +217,70 @@ TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 M
 
 ---
 
-## 10. 结构通过条件
+## 10. 单品种日内结构次数限制
+
+同一品种、同一交易日、同一行情结构，只允许完成一次交易流程。
+
+第一版规则：
+
+```text
+同一品种每天最多执行一次开盘区间突破交易。
+无论止盈还是止损，退出后该品种当天不再生成新的开盘区间突破 TradeSetup。
+```
+
+示例：
+
+```text
+MA 进入观察池
+开盘 15 分钟后向上突破
+生成 TradeSetup
+风险约束通过
+开仓
+止盈或止损退出
+MA 今日开盘区间突破结构结束
+```
+
+退出后：
+
+```text
+MA 当天不再生成新的开盘区间突破 TradeSetup。
+```
+
+但其他品种仍可继续等待结构，前提是账户没有触发每日风险约束。
+
+---
+
+## 11. 品种日内结构状态
+
+每个品种当天维护一个简单状态。
+
+| 状态 | 含义 |
+|---|---|
+| WaitingOpeningRange | 等待开盘区间完成 |
+| WaitingBreakout | 开盘区间已完成，等待突破 |
+| SetupGenerated | 已生成 TradeSetup，等待风险约束验算 |
+| InTrade | 已开仓 |
+| DoneForDay | 该品种该结构当天结束 |
+| RejectedForDay | 该品种该结构当天被拒绝 |
+
+状态规则：
+
+```text
+止盈退出 → DoneForDay
+止损退出 → DoneForDay
+风险约束拒绝 → RejectedForDay
+```
+
+处于以下状态时，不再生成新的开盘区间突破 `TradeSetup`：
+
+```text
+DoneForDay
+RejectedForDay
+```
+
+---
+
+## 12. 结构通过条件
 
 一个行情结构在本阶段只需要满足：
 
@@ -225,6 +288,7 @@ TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 M
 EntryPrice 有效
 StopPrice 有效
 EntryPrice != StopPrice
+当天该品种该结构未结束
 ```
 
 如果结构价格无效，则拒绝。
@@ -233,7 +297,7 @@ EntryPrice != StopPrice
 
 ---
 
-## 11. 拒绝原因
+## 13. 拒绝原因
 
 | 原因 | 含义 |
 |---|---|
@@ -242,15 +306,18 @@ EntryPrice != StopPrice
 | InvalidEntryPrice | 入场价无效 |
 | InvalidStopPrice | 止损价无效 |
 | ZeroPriceRisk | 入场价和止损价相同 |
+| AlreadyDoneForDay | 该品种该结构当天已经结束 |
+| RejectedForDay | 该品种该结构当天已被拒绝 |
 
 ---
 
-## 12. 输出字段
+## 14. 输出字段
 
 | 字段 | 含义 |
 |---|---|
 | Symbol | 品种代码 |
 | StructureType | 行情结构类型 |
+| DailyStructureState | 品种日内结构状态 |
 | Direction | 方向 |
 | OpeningRangeHigh | 开盘区间高点 |
 | OpeningRangeLow | 开盘区间低点 |
@@ -264,12 +331,13 @@ EntryPrice != StopPrice
 
 ---
 
-## 13. 完整算例
+## 15. 完整算例
 
 品种参数：
 
 | 参数 | 数值 |
 |---|---:|
+| Symbol | MA |
 | Multiplier | 10 |
 | TickSize | 1 |
 
@@ -295,12 +363,20 @@ LongTriggerPrice = 3000 + 1 × 1
 LongTriggerPrice = 3001
 ```
 
-如果价格突破 `3001`，生成做多结构：
+如果价格突破 `3001`，且 MA 当前状态为：
 
 ```text
+WaitingBreakout
+```
+
+则生成做多结构：
+
+```text
+Symbol = MA
 Direction = Long
 EntryPrice = 3001
 StopPrice = 2985
+DailyStructureState = SetupGenerated
 ```
 
 结构风险距离：
@@ -330,9 +406,17 @@ RejectReason = None
 TargetPrice、AllowedLots、TradeR 和是否允许交易，由风险约束阶段返回。
 ```
 
+如果本笔后续止盈或止损退出：
+
+```text
+DailyStructureState = DoneForDay
+```
+
+MA 当天不再生成新的开盘区间突破结构。
+
 ---
 
-## 14. 反例
+## 16. 反例
 
 如果开盘区间尚未完成：
 
@@ -362,9 +446,22 @@ Status = Rejected
 RejectReason = InvalidStopPrice
 ```
 
+如果 MA 已经完成一次开盘区间突破交易：
+
+```text
+DailyStructureState = DoneForDay
+```
+
+再次突破时：
+
+```text
+Status = Rejected
+RejectReason = AlreadyDoneForDay
+```
+
 ---
 
-## 15. 结论
+## 17. 结论
 
 第三步的目标是：
 
@@ -379,3 +476,10 @@ RejectReason = InvalidStopPrice
 行情结构只生成 `TradeSetup`。
 
 止盈价格、手数和是否能交易，由后续风险约束阶段判断。
+
+单品种日内规则：
+
+```text
+同一品种每天最多执行一次开盘区间突破交易。
+退出后该品种当天不再生成新的开盘区间突破 TradeSetup。
+```
