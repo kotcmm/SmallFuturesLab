@@ -11,80 +11,80 @@ public sealed record RiskConstraintConfig
     /// <summary>
     /// 创建账户风险约束配置。
     /// </summary>
-    /// <param name="AccountEquity">账户权益。</param>
-    /// <param name="RiskPercentPerTrade">单笔风险比例，例如 0.005 表示 0.5%。</param>
-    /// <param name="MinPlannedRewardR">单笔最低计划盈利倍数，例如 2.5 表示至少计划 2.5R 的目标空间。</param>
-    /// <param name="PerTradeCostMaxR">单笔成本上限，单位是 R。</param>
-    /// <param name="MaxMarginUsageRatio">账户最大允许保证金占用比例。</param>
-    /// <param name="DailyLossLimitMultiple">每日亏损上限相对 AccountR 的倍数。</param>
-    /// <param name="DailyProfitLockMultiple">每日盈利保护线相对 AccountR 的倍数。</param>
-    /// <param name="MaxDailyTrades">每日最多新开仓次数。</param>
-    /// <param name="MaxConsecutiveLosses">达到多少次连续亏损后暂停新开仓。</param>
+    /// <param name="accountEquity">账户权益。</param>
+    /// <param name="riskPercentPerTrade">单笔风险比例，例如 0.005 表示 0.5%。</param>
+    /// <param name="minPlannedRewardR">单笔最低计划盈利倍数，例如 2.5 表示至少计划 2.5R 的目标空间。</param>
+    /// <param name="perTradeCostMaxR">单笔成本上限，单位是 R。</param>
+    /// <param name="maxMarginUsageRatio">账户最大允许保证金占用比例。</param>
+    /// <param name="dailyLossLimitMultiple">每日亏损上限相对 AccountR 的倍数。</param>
+    /// <param name="dailyProfitLockMultiple">每日盈利保护线相对 AccountR 的倍数。</param>
+    /// <param name="maxDailyTrades">每日最多新开仓次数。</param>
+    /// <param name="maxConsecutiveLosses">达到多少次连续亏损后暂停新开仓。</param>
     public RiskConstraintConfig(
-        double AccountEquity,
-        double RiskPercentPerTrade,
-        double MinPlannedRewardR,
-        double PerTradeCostMaxR,
-        double MaxMarginUsageRatio,
-        double DailyLossLimitMultiple,
-        double DailyProfitLockMultiple,
-        int MaxDailyTrades,
-        int MaxConsecutiveLosses)
+        double accountEquity,
+        double riskPercentPerTrade,
+        double minPlannedRewardR,
+        double perTradeCostMaxR,
+        double maxMarginUsageRatio,
+        double dailyLossLimitMultiple,
+        double dailyProfitLockMultiple,
+        int maxDailyTrades,
+        int maxConsecutiveLosses)
     {
-        if (AccountEquity <= 0)
+        if (accountEquity <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(AccountEquity), "账户权益必须大于 0。");
+            throw new ArgumentOutOfRangeException(nameof(accountEquity), "账户权益必须大于 0。");
         }
 
-        if (RiskPercentPerTrade <= 0 || RiskPercentPerTrade > 1)
+        if (riskPercentPerTrade <= 0 || riskPercentPerTrade > 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(RiskPercentPerTrade), "单笔风险比例必须在 (0, 1] 内。");
+            throw new ArgumentOutOfRangeException(nameof(riskPercentPerTrade), "单笔风险比例必须在 (0, 1] 内。");
         }
 
-        if (MinPlannedRewardR <= 0)
+        if (minPlannedRewardR <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(MinPlannedRewardR), "最低计划盈利倍数必须大于 0。");
+            throw new ArgumentOutOfRangeException(nameof(minPlannedRewardR), "最低计划盈利倍数必须大于 0。");
         }
 
-        if (PerTradeCostMaxR < 0)
+        if (perTradeCostMaxR < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(PerTradeCostMaxR), "单笔成本上限不能小于 0。");
+            throw new ArgumentOutOfRangeException(nameof(perTradeCostMaxR), "单笔成本上限不能小于 0。");
         }
 
-        if (MaxMarginUsageRatio <= 0 || MaxMarginUsageRatio > 1)
+        if (maxMarginUsageRatio <= 0 || maxMarginUsageRatio > 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(MaxMarginUsageRatio), "最大保证金占用比例必须在 (0, 1] 内。");
+            throw new ArgumentOutOfRangeException(nameof(maxMarginUsageRatio), "最大保证金占用比例必须在 (0, 1] 内。");
         }
 
-        if (DailyLossLimitMultiple <= 0)
+        if (dailyLossLimitMultiple <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(DailyLossLimitMultiple), "每日亏损上限倍数必须大于 0。");
+            throw new ArgumentOutOfRangeException(nameof(dailyLossLimitMultiple), "每日亏损上限倍数必须大于 0。");
         }
 
-        if (DailyProfitLockMultiple <= 0)
+        if (dailyProfitLockMultiple <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(DailyProfitLockMultiple), "每日盈利保护倍数必须大于 0。");
+            throw new ArgumentOutOfRangeException(nameof(dailyProfitLockMultiple), "每日盈利保护倍数必须大于 0。");
         }
 
-        if (MaxDailyTrades < 1)
+        if (maxDailyTrades < 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(MaxDailyTrades), "每日最多交易次数必须至少为 1。");
+            throw new ArgumentOutOfRangeException(nameof(maxDailyTrades), "每日最多交易次数必须至少为 1。");
         }
 
-        if (MaxConsecutiveLosses < 1)
+        if (maxConsecutiveLosses < 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(MaxConsecutiveLosses), "连续亏损暂停笔数必须至少为 1。");
+            throw new ArgumentOutOfRangeException(nameof(maxConsecutiveLosses), "连续亏损暂停笔数必须至少为 1。");
         }
 
-        this.AccountEquity = AccountEquity;
-        this.RiskPercentPerTrade = RiskPercentPerTrade;
-        this.MinPlannedRewardR = MinPlannedRewardR;
-        this.PerTradeCostMaxR = PerTradeCostMaxR;
-        this.MaxMarginUsageRatio = MaxMarginUsageRatio;
-        this.DailyLossLimitMultiple = DailyLossLimitMultiple;
-        this.DailyProfitLockMultiple = DailyProfitLockMultiple;
-        this.MaxDailyTrades = MaxDailyTrades;
-        this.MaxConsecutiveLosses = MaxConsecutiveLosses;
+        AccountEquity = accountEquity;
+        RiskPercentPerTrade = riskPercentPerTrade;
+        MinPlannedRewardR = minPlannedRewardR;
+        PerTradeCostMaxR = perTradeCostMaxR;
+        MaxMarginUsageRatio = maxMarginUsageRatio;
+        DailyLossLimitMultiple = dailyLossLimitMultiple;
+        DailyProfitLockMultiple = dailyProfitLockMultiple;
+        MaxDailyTrades = maxDailyTrades;
+        MaxConsecutiveLosses = maxConsecutiveLosses;
     }
 
     /// <summary>
