@@ -33,43 +33,20 @@ public sealed record AccountRiskLimits
         int maxDailyTrades,
         int maxConsecutiveLosses)
     {
-        AccountEquity = Ensure.Positive(
-            accountEquity,
-            "账户权益必须大于 0。");
+        AccountEquity = Ensure.Positive(accountEquity, "账户权益必须大于 0。");
+        RiskPercentPerTrade = Ensure.Ratio(riskPercentPerTrade, "单笔风险比例必须在 (0, 1] 内。");
+        MinPlannedRewardR = Ensure.Positive(minPlannedRewardR, "最低计划盈利倍数必须大于 0。");
+        PerTradeCostMaxR = Ensure.NonNegative(perTradeCostMaxR, "单笔成本上限不能小于 0。");
+        MaxMarginUsageRatio = Ensure.Ratio(maxMarginUsageRatio, "最大保证金占用比例必须在 (0, 1] 内。");
+        DailyLossLimitMultiple = Ensure.Positive(dailyLossLimitMultiple, "每日亏损上限倍数必须大于 0。");
+        DailyProfitLockMultiple = Ensure.Positive(dailyProfitLockMultiple, "每日盈利保护倍数必须大于 0。");
+        MaxDailyTrades = Ensure.AtLeast(maxDailyTrades, minimum: 1, "每日最多交易次数必须至少为 1。");
+        MaxConsecutiveLosses = Ensure.AtLeast(maxConsecutiveLosses, minimum: 1, "连续亏损暂停笔数必须至少为 1。");
 
-        RiskPercentPerTrade = Ensure.Ratio(
-            riskPercentPerTrade,
-            "单笔风险比例必须在 (0, 1] 内。");
-
-        MinPlannedRewardR = Ensure.Positive(
-            minPlannedRewardR,
-            "最低计划盈利倍数必须大于 0。");
-
-        PerTradeCostMaxR = Ensure.NonNegative(
-            perTradeCostMaxR,
-            "单笔成本上限不能小于 0。");
-
-        MaxMarginUsageRatio = Ensure.Ratio(
-            maxMarginUsageRatio,
-            "最大保证金占用比例必须在 (0, 1] 内。");
-
-        DailyLossLimitMultiple = Ensure.Positive(
-            dailyLossLimitMultiple,
-            "每日亏损上限倍数必须大于 0。");
-
-        DailyProfitLockMultiple = Ensure.Positive(
-            dailyProfitLockMultiple,
-            "每日盈利保护倍数必须大于 0。");
-
-        MaxDailyTrades = Ensure.AtLeast(
-            maxDailyTrades,
-            minimum: 1,
-            "每日最多交易次数必须至少为 1。");
-
-        MaxConsecutiveLosses = Ensure.AtLeast(
-            maxConsecutiveLosses,
-            minimum: 1,
-            "连续亏损暂停笔数必须至少为 1。");
+        AccountR = AccountEquity * RiskPercentPerTrade;
+        DailyLossLimit = AccountR * DailyLossLimitMultiple;
+        DailyProfitLockR = AccountR * DailyProfitLockMultiple;
+        MaxAllowedMargin = AccountEquity * MaxMarginUsageRatio;
     }
 
     /// <summary>
@@ -121,27 +98,31 @@ public sealed record AccountRiskLimits
     /// AccountR = AccountEquity × RiskPercentPerTrade。
     ///
     /// 含义：账户允许的单笔风险上限。
+    /// 这是构造时计算出的派生边界，不是外部传入值。
     /// </summary>
-    public double AccountR => AccountEquity * RiskPercentPerTrade;
+    public double AccountR { get; }
 
     /// <summary>
     /// DailyLossLimit = AccountR × DailyLossLimitMultiple。
     ///
     /// 含义：当天已实现亏损达到该金额后停止新开仓。
+    /// 这是构造时计算出的派生边界，不是外部传入值。
     /// </summary>
-    public double DailyLossLimit => AccountR * DailyLossLimitMultiple;
+    public double DailyLossLimit { get; }
 
     /// <summary>
     /// DailyProfitLockR = AccountR × DailyProfitLockMultiple。
     ///
     /// 含义：当天已实现盈利达到该金额后停止新开仓。
+    /// 这是构造时计算出的派生边界，不是外部传入值。
     /// </summary>
-    public double DailyProfitLockR => AccountR * DailyProfitLockMultiple;
+    public double DailyProfitLockR { get; }
 
     /// <summary>
     /// MaxAllowedMargin = AccountEquity × MaxMarginUsageRatio。
     ///
     /// 含义：账户允许的最大保证金占用金额。
+    /// 这是构造时计算出的派生边界，不是外部传入值。
     /// </summary>
-    public double MaxAllowedMargin => AccountEquity * MaxMarginUsageRatio;
+    public double MaxAllowedMargin { get; }
 }
