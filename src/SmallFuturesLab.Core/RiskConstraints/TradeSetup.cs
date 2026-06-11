@@ -6,22 +6,71 @@ namespace SmallFuturesLab.Core.RiskConstraints;
 /// TradeSetup 来自行情结构模块。它只描述“如果要做这笔交易，在哪里进场，在哪里证明错了”。
 /// 目标价、手数、TradeR 和是否允许交易，都由风险约束模块推导。
 /// </summary>
-/// <param name="Symbol">品种代码。</param>
-/// <param name="Direction">交易方向。</param>
-/// <param name="EntryPrice">计划入场价。</param>
-/// <param name="StopPrice">计划止损价。</param>
-/// <param name="Multiplier">合约乘数。</param>
-/// <param name="EstimatedRoundTripCostPerLot">预估单手开平总成本，包含手续费、滑点、价差等。</param>
-/// <param name="OneLotMargin">单手保证金。</param>
-public sealed record TradeSetup(
-    string Symbol,
-    TradeDirection Direction,
-    double EntryPrice,
-    double StopPrice,
-    double Multiplier,
-    double EstimatedRoundTripCostPerLot,
-    double OneLotMargin)
+public sealed record TradeSetup
 {
+    /// <summary>
+    /// 创建交易结构输入。
+    /// </summary>
+    /// <param name="symbol">品种代码。</param>
+    /// <param name="direction">交易方向。</param>
+    /// <param name="entryPrice">计划入场价。</param>
+    /// <param name="stopPrice">计划止损价。</param>
+    /// <param name="multiplier">合约乘数。</param>
+    /// <param name="estimatedRoundTripCostPerLot">预估单手开平总成本，包含手续费、滑点、价差等。</param>
+    /// <param name="oneLotMargin">单手保证金。</param>
+    public TradeSetup(
+        string symbol,
+        TradeDirection direction,
+        double entryPrice,
+        double stopPrice,
+        double multiplier,
+        double estimatedRoundTripCostPerLot,
+        double oneLotMargin)
+    {
+        Symbol = symbol;
+        Direction = direction;
+        EntryPrice = entryPrice;
+        StopPrice = stopPrice;
+        Multiplier = multiplier;
+        EstimatedRoundTripCostPerLot = estimatedRoundTripCostPerLot;
+        OneLotMargin = oneLotMargin;
+    }
+
+    /// <summary>
+    /// 品种代码。
+    /// </summary>
+    public string Symbol { get; init; }
+
+    /// <summary>
+    /// 交易方向。
+    /// </summary>
+    public TradeDirection Direction { get; init; }
+
+    /// <summary>
+    /// 计划入场价。
+    /// </summary>
+    public double EntryPrice { get; init; }
+
+    /// <summary>
+    /// 计划止损价。
+    /// </summary>
+    public double StopPrice { get; init; }
+
+    /// <summary>
+    /// 合约乘数。
+    /// </summary>
+    public double Multiplier { get; init; }
+
+    /// <summary>
+    /// 预估单手开平总成本，包含手续费、滑点、价差等。
+    /// </summary>
+    public double EstimatedRoundTripCostPerLot { get; init; }
+
+    /// <summary>
+    /// 单手保证金。
+    /// </summary>
+    public double OneLotMargin { get; init; }
+
     /// <summary>
     /// SetupPriceRisk = |EntryPrice - StopPrice|。
     ///
