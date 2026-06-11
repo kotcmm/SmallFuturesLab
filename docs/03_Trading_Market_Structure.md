@@ -37,7 +37,7 @@ TradeSetup
 
 ## 3. 本阶段先使用的结构
 
-第一版只使用一个结构：
+当前只使用一个结构：
 
 ```text
 开盘区间突破
@@ -70,7 +70,7 @@ TradeSetup
 ```text
 RoundTripFeePerLot 来自日内候选品种筛选阶段。
 行情结构阶段可以把它转换成风险约束阶段使用的 EstimatedRoundTripCostPerLot。
-第一版默认 EstimatedRoundTripCostPerLot = RoundTripFeePerLot。
+当前默认 EstimatedRoundTripCostPerLot = RoundTripFeePerLot。
 ```
 
 后续如果需要更保守，可以在生成 `TradeSetup` 前额外叠加滑点、价差或冲击成本缓冲。
@@ -86,11 +86,11 @@ RoundTripFeePerLot 来自日内候选品种筛选阶段。
 
 ```text
 BreakoutOffsetTicks = 1 是最敏感设置。
-它适合第一版捕捉所有潜在突破，但也更容易受到假突破影响。
+它适合当前规则捕捉所有潜在突破，但也更容易受到假突破影响。
 后续回测时可以把 BreakoutOffsetTicks 作为参数测试，例如 1、2、3。
 ```
 
-第一版不直接把默认值改成 2 或 3，因为不同品种的 tick size、波动率和开盘活跃度差异较大。
+当前不直接把默认值改成 2 或 3，因为不同品种的 tick size、波动率和开盘活跃度差异较大。
 
 ### 4.3 盘中行情数据
 
@@ -216,7 +216,7 @@ Multiplier
 EstimatedRoundTripCostPerLot
 ```
 
-第一版成本传递规则：
+当前成本传递规则：
 
 ```text
 EstimatedRoundTripCostPerLot = RoundTripFeePerLot
@@ -253,7 +253,7 @@ TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 M
 
 同一品种、同一交易日、同一行情结构，只允许完成一次交易流程。
 
-第一版规则：
+当前规则：
 
 ```text
 同一品种每天最多执行一次开盘区间突破交易。
@@ -263,7 +263,7 @@ TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 M
 说明：
 
 ```text
-第一版固定 MaxSetupsPerSymbolPerDay = 1。
+当前固定 MaxSetupsPerSymbolPerDay = 1。
 这是为了降低重复假突破、过度交易和状态机复杂度。
 后续只有在回测证明有必要时，才考虑放宽到 2 或更多。
 ```
@@ -516,7 +516,7 @@ RejectReason = AlreadyDoneForDay
 
 > 在观察池品种里，寻找能够明确给出入场价和止损价的行情结构。
 
-第一版只使用：
+当前只使用：
 
 ```text
 开盘区间突破
