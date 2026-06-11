@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-交易行情结构，是把观察池里的品种转换成可计算的交易计划。
+交易行情结构，是把观察池里的品种转换成可被风险约束验算的交易设想。
 
 本步骤输出：
 
@@ -28,7 +28,7 @@ TradeSetup
 ```text
 在哪里进场
 在哪里证明自己错了
-错了以后亏多少
+价格距离是多少
 ```
 
 如果一个结构不能给出明确止损价，就不是合格结构。
@@ -147,70 +147,96 @@ InvalidReason = 价格涨回 OpeningRangeHigh
 
 ---
 
-## 8. 交易计划风险计算
+## 8. 结构风险距离
 
-生成 `TradeSetup` 后，才能计算单笔交易风险。
-
-一手价格风险：
+生成 `TradeSetup` 后，本步骤只计算结构本身的价格距离。
 
 ```text
-OneLotPriceRisk = |EntryPrice - StopPrice| × Multiplier
+SetupPriceRisk = |EntryPrice - StopPrice|
 ```
 
-一手计划风险：
+如果需要换算成一手价格风险，可以计算：
 
 ```text
-OneLotTradeR = OneLotPriceRisk + RoundTripFeePerLot
+OneLotPriceRisk = SetupPriceRisk × Multiplier
 ```
 
-允许手数：
+说明：
 
 ```text
-AllowedLots = floor(AccountR / OneLotTradeR)
+OneLotPriceRisk 只表示价格从入场价到止损价的距离金额。
+它不包含手续费、滑点，也不决定下多少手。
 ```
-
-实际计划风险：
-
-```text
-TradeR = OneLotTradeR × AllowedLots
-```
-
-这些结果交给 `01_Positive_Expectancy_and_Risk_Constraints.md` 的风险约束继续验算。
 
 ---
 
-## 9. 通过条件
+## 9. 和风险约束的关系
 
-一个交易结构至少要满足：
-
-```text
-AllowedLots >= 1
-TradeR <= AccountR
-```
-
-如果后续设置最低盈亏比要求，还需要满足：
+行情结构阶段不决定：
 
 ```text
-PotentialReward >= RequiredReward
+AllowedLots
+TradeR
+PerTradeCostMaxR 是否满足
+MaxMarginUsageRatio 是否满足
+是否允许下单
 ```
 
-第一版先不在本文件定义止盈规则。
+这些结果由风险约束阶段返回。
+
+行情结构阶段只把以下内容交给风险约束阶段：
+
+```text
+Symbol
+Direction
+EntryPrice
+StopPrice
+Multiplier
+RoundTripFeePerLot
+```
+
+风险约束阶段再计算：
+
+```text
+OneLotTradeR
+AllowedLots
+TradeR
+成本占比 c
+保证金占用是否合格
+最终是否允许交易
+```
 
 ---
 
-## 10. 拒绝原因
+## 10. 结构通过条件
+
+一个行情结构在本阶段只需要满足：
+
+```text
+EntryPrice 有效
+StopPrice 有效
+EntryPrice != StopPrice
+```
+
+如果结构价格无效，则拒绝。
+
+风险是否合格，不在本步骤判断。
+
+---
+
+## 11. 拒绝原因
 
 | 原因 | 含义 |
 |---|---|
 | OpeningRangeNotReady | 开盘区间尚未完成 |
 | NoBreakout | 没有突破触发价 |
+| InvalidEntryPrice | 入场价无效 |
 | InvalidStopPrice | 止损价无效 |
-| OneLotRiskTooHigh | 一手计划风险超过账户单笔风险上限 |
-| NoAllowedLots | 允许手数小于 1 |
+| ZeroPriceRisk | 入场价和止损价相同 |
 
 ---
 
-## 11. 输出字段
+## 12. 输出字段
 
 | 字段 | 含义 |
 |---|---|
@@ -222,21 +248,14 @@ PotentialReward >= RequiredReward
 | EntryPrice | 入场价 |
 | StopPrice | 止损价 |
 | InvalidReason | 结构失效条件 |
-| OneLotTradeR | 一手计划风险 |
-| AllowedLots | 允许手数 |
-| TradeR | 实际计划风险 |
+| SetupPriceRisk | 入场价到止损价的价格距离 |
+| OneLotPriceRisk | 一手价格风险，不含成本 |
 | Status | 结构状态 |
 | RejectReason | 拒绝原因 |
 
 ---
 
-## 12. 完整算例
-
-账户参数：
-
-| 参数 | 数值 |
-|---|---:|
-| AccountR | 250 |
+## 13. 完整算例
 
 品种参数：
 
@@ -244,7 +263,6 @@ PotentialReward >= RequiredReward
 |---|---:|
 | Multiplier | 10 |
 | TickSize | 1 |
-| RoundTripFeePerLot | 10 |
 
 结构参数：
 
@@ -276,26 +294,18 @@ EntryPrice = 3001
 StopPrice = 2985
 ```
 
-风险计算：
+结构风险距离：
 
 ```text
-OneLotPriceRisk = |3001 - 2985| × 10
+SetupPriceRisk = |3001 - 2985|
+SetupPriceRisk = 16
+```
+
+一手价格风险：
+
+```text
+OneLotPriceRisk = 16 × 10
 OneLotPriceRisk = 160
-```
-
-```text
-OneLotTradeR = 160 + 10
-OneLotTradeR = 170
-```
-
-```text
-AllowedLots = floor(250 / 170)
-AllowedLots = 1
-```
-
-```text
-TradeR = 170 × 1
-TradeR = 170
 ```
 
 结果：
@@ -305,49 +315,47 @@ Status = CandidateSetup
 RejectReason = None
 ```
 
+说明：
+
+```text
+AllowedLots、TradeR 和是否允许交易，由风险约束阶段返回。
+```
+
 ---
 
-## 13. 反例
+## 14. 反例
 
-如果开盘区间过大：
-
-```text
-OpeningRangeHigh = 3000
-OpeningRangeLow = 2960
-EntryPrice = 3001
-StopPrice = 2960
-Multiplier = 10
-RoundTripFeePerLot = 10
-AccountR = 250
-```
-
-风险计算：
+如果开盘区间尚未完成：
 
 ```text
-OneLotPriceRisk = |3001 - 2960| × 10
-OneLotPriceRisk = 410
-```
-
-```text
-OneLotTradeR = 410 + 10
-OneLotTradeR = 420
-```
-
-```text
-AllowedLots = floor(250 / 420)
-AllowedLots = 0
+OpeningRangeMinutes = 15
+当前只收到 10 分钟数据
 ```
 
 结果：
 
 ```text
 Status = Rejected
-RejectReason = NoAllowedLots
+RejectReason = OpeningRangeNotReady
+```
+
+如果突破后无法形成有效止损价：
+
+```text
+EntryPrice = 3001
+StopPrice = null
+```
+
+结果：
+
+```text
+Status = Rejected
+RejectReason = InvalidStopPrice
 ```
 
 ---
 
-## 14. 结论
+## 15. 结论
 
 第三步的目标是：
 
@@ -359,4 +367,6 @@ RejectReason = NoAllowedLots
 开盘区间突破
 ```
 
-结构生成后，再交给风险约束判断能不能交易。
+行情结构只生成 `TradeSetup`。
+
+是否能交易，由后续风险约束阶段判断。
