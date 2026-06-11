@@ -7,7 +7,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void BuildsAcceptedLongTradePlanFromDocumentExample()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             new TradeSetup(
@@ -43,7 +43,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void BuildsShortTargetPriceBelowEntry()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             new TradeSetup(
@@ -63,7 +63,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenDailyLossLimitReached()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
@@ -80,7 +80,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenDailyProfitLockReached()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
@@ -97,7 +97,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenMaxDailyTradesReached()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
@@ -114,7 +114,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenConsecutiveLossLimitReached()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
@@ -131,7 +131,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenAccountRCanNotCoverOneLotTradeR()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             new TradeSetup(
@@ -152,7 +152,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenCostInRExceedsLimit()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             new TradeSetup(
@@ -173,7 +173,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenMarginAfterOpenExceedsLimit()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             DefaultTradeSetup(),
@@ -191,7 +191,7 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsInvalidTradeSetupWithoutThrowing()
     {
-        var constraint = new RiskConstraint(DefaultConfig());
+        var constraint = new RiskConstraint(DefaultLimits());
 
         var plan = constraint.Evaluate(
             new TradeSetup(
@@ -210,9 +210,9 @@ public sealed class RiskConstraintTests
         Assert.Equal(0, plan.TargetPrice);
     }
 
-    private static RiskConstraintConfig DefaultConfig()
+    private static AccountRiskLimits DefaultLimits()
     {
-        return new RiskConstraintConfig(
+        return new AccountRiskLimits(
             accountEquity: 50000,
             riskPercentPerTrade: 0.005,
             minPlannedRewardR: 2.5,
