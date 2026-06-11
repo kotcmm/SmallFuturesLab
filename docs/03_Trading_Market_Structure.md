@@ -175,6 +175,7 @@ OneLotPriceRisk 只表示价格从入场价到止损价的距离金额。
 行情结构阶段不决定：
 
 ```text
+TargetPrice
 AllowedLots
 TradeR
 PerTradeCostMaxR 是否满足
@@ -195,15 +196,23 @@ Multiplier
 RoundTripFeePerLot
 ```
 
-风险约束阶段再计算：
+风险约束阶段再根据 `MinPlannedRewardR` 计算：
 
 ```text
+TargetPrice
 OneLotTradeR
 AllowedLots
 TradeR
 成本占比 c
 保证金占用是否合格
 最终是否允许交易
+```
+
+其中：
+
+```text
+MinPlannedRewardR 属于账户风险约束配置，不属于行情结构参数。
+TargetPrice 由风险约束阶段根据 EntryPrice、StopPrice、Direction 和 MinPlannedRewardR 推导。
 ```
 
 ---
@@ -318,7 +327,7 @@ RejectReason = None
 说明：
 
 ```text
-AllowedLots、TradeR 和是否允许交易，由风险约束阶段返回。
+TargetPrice、AllowedLots、TradeR 和是否允许交易，由风险约束阶段返回。
 ```
 
 ---
@@ -369,4 +378,4 @@ RejectReason = InvalidStopPrice
 
 行情结构只生成 `TradeSetup`。
 
-是否能交易，由后续风险约束阶段判断。
+止盈价格、手数和是否能交易，由后续风险约束阶段判断。
