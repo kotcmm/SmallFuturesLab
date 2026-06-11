@@ -46,7 +46,7 @@ SmallFuturesLab 的第一步是：
 | 仓位手数 | 根据账户风险上限和单笔结构风险计算。 |
 | 计划目标空间 | 每笔交易必须满足最低计划盈利倍数。 |
 | 保证金占用 | 账户总保证金占用不得超过最大比例。 |
-| 单笔成本 | 每笔交易成本不得超过单笔成本上限。 |
+| 单笔成本 | 交易前只用可确定或可稳定估计的成本做约束。 |
 | 每日亏损 | 达到亏损上限后停止新开仓。 |
 | 每日盈利保护 | 达到盈利保护线后停止新开仓。 |
 | 每日交易次数 | 达到交易次数上限后停止新开仓。 |
@@ -107,7 +107,7 @@ E = p × b - (1 - p) × a - c
 | `p` | 胜率 | 回测或实盘记录统计 |
 | `b` | 平均盈利，单位是 R | 回测或实盘记录统计 |
 | `a` | 平均亏损倍数 | 回测或实盘记录统计 |
-| `c` | 单笔交易成本，单位是 R | 单笔交易计划计算 |
+| `c` | 单笔交易成本，单位是 R | 交易计划预估或交易记录统计 |
 
 正期望条件：
 
@@ -125,13 +125,25 @@ b 是统计结果，不是单笔计划参数。
 
 ## 6. 最低胜率要求
 
-当平均亏损控制在 `1R` 时：
+更一般地，当平均亏损为 `aR` 时：
+
+```text
+E = p × b - (1 - p) × a - c
+```
+
+要让 `E > 0`，需要满足：
+
+```text
+p > (a + c) / (b + a)
+```
+
+当平均亏损控制在 `1R` 时，即 `a = 1`：
 
 ```text
 E = p × b - (1 - p) - c
 ```
 
-要让 `E > 0`，需要满足：
+公式退化为：
 
 ```text
 p > (1 + c) / (b + 1)
@@ -167,7 +179,7 @@ MinPlannedRewardR = 2.5R
 说明：
 
 ```text
-MinPlannedRewardR 是账户风险约束配置。
+MinPlannedRewardR 是账户风险边界参数。
 b 是历史样本统计出来的平均盈利。
 二者不能混为一个概念。
 ```
@@ -238,18 +250,91 @@ TargetPrice 由风险约束阶段生成，不由行情结构阶段生成。
 
 ## 9. 单笔成本约束
 
-成本包括：
+成本分成两类：
 
-1. 手续费；
-2. 滑点；
-3. 买卖价差；
-4. 冲击成本；
-5. 无法按计划价格成交的损耗。
+| 类型 | 是否在交易前确定 | 当前处理方式 |
+|---|---|---|
+| 手续费 | 可以相对稳定估计 | 进入交易前风险约束。 |
+| 滑点 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 买卖价差 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 冲击成本 | 不能精确提前知道 | 成交后进入实际交易记录。 |
+| 无法按计划价格成交的损耗 | 不能精确提前知道 | 成交后进入实际交易记录。 |
 
-成本必须在每一笔交易计划中单独计算。
+### 9.1 交易前成本字段
+
+`RoundTripFeePerLot` 是单手开平合计手续费，来自品种资料或交易所费率。
+
+`EstimatedRoundTripCostPerLot` 是风险约束阶段使用的交易前预估单手成本。
+
+当前默认只使用可相对稳定估计的手续费：
 
 ```text
-c = 本笔交易总成本 / TradeR
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
+
+说明：
+
+```text
+滑点、买卖价差、冲击成本不作为当前默认风险约束输入。
+这些成本需要在成交后根据实际成交记录统计。
+```
+
+成交后记录实际成本：
+
+```text
+ActualRoundTripCost = ActualFee + ActualSlippageCost + ActualSpreadCost + ActualMarketImpactCost
+```
+
+如果长期出现：
+
+```text
+ActualRoundTripCost 明显高于 EstimatedRoundTripCostPerLot
+```
+
+再考虑是否调整成本模型或在交易计划阶段加入保守成本缓冲。
+
+### 9.2 交易前成本计算流程
+
+一手价格风险：
+
+```text
+OneLotPriceRisk = |EntryPrice - StopPrice| × Multiplier
+```
+
+一手计划风险：
+
+```text
+OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot
+```
+
+允许手数：
+
+```text
+AllowedLots = floor(AccountR / OneLotTradeR)
+```
+
+本笔实际计划风险：
+
+```text
+TradeR = OneLotTradeR × AllowedLots
+```
+
+本笔交易前预估总成本：
+
+```text
+EstimatedTotalTradeCost = EstimatedRoundTripCostPerLot × AllowedLots
+```
+
+交易前预估成本占比：
+
+```text
+c = EstimatedTotalTradeCost / TradeR
+```
+
+当 `AllowedLots = 1` 时：
+
+```text
+c = EstimatedRoundTripCostPerLot / OneLotTradeR
 ```
 
 约束规则：
@@ -263,6 +348,24 @@ c <= PerTradeCostMaxR
 ```text
 PerTradeCostMaxR = 0.20R
 ```
+
+### 9.3 成交后成本统计
+
+成交完成后，需要使用成交记录统计实际成本：
+
+```text
+ActualCostR = ActualRoundTripCost / TradeR
+```
+
+如果长期出现：
+
+```text
+ActualCostR > c
+```
+
+说明交易前成本估计偏低，可能来自滑点、买卖价差、冲击成本或成交质量问题。
+
+此时应优先复盘执行质量和品种流动性，而不是直接把不可控成本硬塞进风险约束参数。
 
 ---
 
@@ -326,6 +429,16 @@ TradeR = OneLotTradeR × AllowedLots
 ## 12. 每日交易节奏约束
 
 每日交易节奏约束控制当天什么时候停止新开仓。
+
+以下数值是当前保守初始值，不是数学常数。
+
+后续可以通过回测结果调整，例如：
+
+```text
+DailyLossLimitMultiple ∈ [1.5, 3.0]
+DailyProfitLockMultiple ∈ [1.5, 3.0]
+MaxDailyTrades ∈ [1, 3]
+```
 
 ### 12.1 每日亏损上限
 
@@ -434,6 +547,20 @@ P = q^n
 账户必须能承受 10 × AccountR 的连续亏损
 ```
 
+说明：
+
+```text
+10 × AccountR 是当前保守承受力要求。
+它不是每日亏损上限，也不是系统预期一定会亏到该金额。
+它用于确认账户规模和单笔风险比例是否匹配低胜率策略。
+```
+
+后续可以把 `MaxConsecutiveLosses` 作为参数调整，例如：
+
+```text
+MaxConsecutiveLosses ∈ [5, 10]
+```
+
 ---
 
 ## 14. 最大回撤约束
@@ -523,6 +650,7 @@ TradeR <= AccountR
 ### 16.2 单笔成本计算
 
 ```text
+EstimatedTotalTradeCost = 20 × 1 = 20
 c = 20 / 220
 c = 0.09R
 ```
@@ -618,7 +746,7 @@ OneLotMargin = 3,000
 | OneLotTradeR | 220 | 一手计划风险。 |
 | AllowedLots | 1 手 | 本笔允许手数。 |
 | TradeR | 220 | 本笔实际计划风险。 |
-| c | 0.09R | 本笔成本占比。 |
+| c | 0.09R | 本笔交易前预估成本占比。 |
 | MinPlannedRewardR | 2.5R | 本笔最低计划盈利倍数。 |
 | TargetPrice | 3055 | 风险约束反推出的目标价。 |
 | MaxAllowedMargin | 15,000 | 账户最大允许保证金占用金额。 |
@@ -641,7 +769,7 @@ OneLotMargin = 3,000
 
 1. `AllowedLots` 是否大于等于 1；
 2. `TradeR` 是否小于等于 `AccountR`；
-3. 本笔交易成本是否低于 `PerTradeCostMaxR`；
+3. 本笔交易前预估成本是否低于 `PerTradeCostMaxR`；
 4. 本笔交易后账户保证金占用是否低于 `MaxMarginUsageRatio`；
 5. 是否能根据 `MinPlannedRewardR` 推导出目标价；
 6. 当天是否还允许新开仓；

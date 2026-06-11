@@ -58,7 +58,7 @@
 
 ## 4. 过滤一：保证金过滤
 
-先用昨日结算价估算该品种一手保证金：
+先计算该品种筛选用一手保证金：
 
 ```text
 OneLotMargin = PreviousSettlementPrice × Multiplier × MarginRate
@@ -109,6 +109,13 @@ MinimumOneLotTradeR <= AccountR
 含义：
 
 > 如果价格只反向跳一跳，加上单手开平手续费，就已经超过账户单笔风险上限，这个品种不适合当前小资金账户。
+
+说明：
+
+```text
+这是最小可交易性硬过滤，不是盈利质量过滤。
+如果 MinimumOneLotTradeR > AccountR，则该品种在当前账户规模下不存在任何合规的一手交易结构。
+```
 
 不满足则排除。
 
@@ -161,6 +168,19 @@ MarginTooHigh → MinimumTradeRTooHigh
 | TickValue | 一跳价值 |
 | RoundTripFeePerLot | 单手开平合计手续费 |
 | MinimumOneLotTradeR | 一手最小可能交易风险 |
+
+### 7.1 成本字段传递说明
+
+`RoundTripFeePerLot` 会传递给后续行情结构阶段。
+
+当前默认在后续风险约束阶段令：
+
+```text
+EstimatedRoundTripCostPerLot = RoundTripFeePerLot
+```
+
+滑点、买卖价差和冲击成本不在候选品种筛选阶段估计。
+这些成本需要在成交后根据交易记录统计。
 
 筛选状态：
 
