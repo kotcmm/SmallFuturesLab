@@ -40,10 +40,7 @@ public sealed class TradeRiskEvaluator
     /// <param name="contract">合约风险计算资料。</param>
     /// <param name="dailyRiskState">当日风险状态。</param>
     /// <returns>风险验算后的交易计划。</returns>
-    public TradePlan Evaluate(
-        TradeSetup setup,
-        ContractRiskProfile contract,
-        DailyRiskState dailyRiskState)
+    public TradePlan Evaluate(TradeSetup setup, ContractRiskProfile contract, DailyRiskState dailyRiskState)
     {
         ArgumentNullException.ThrowIfNull(setup);
         ArgumentNullException.ThrowIfNull(contract);
@@ -52,37 +49,18 @@ public sealed class TradeRiskEvaluator
         var inputRejectReason = _inputValidator.Validate(setup, contract);
         if (inputRejectReason != RiskRejectReason.None)
         {
-            return _tradePlanFactory.Rejected(
-                setup,
-                _limits,
-                dailyRiskState,
-                inputRejectReason);
+            return _tradePlanFactory.Rejected(setup, _limits, dailyRiskState, inputRejectReason);
         }
 
-        var calculation = _calculator.Calculate(
-            _limits,
-            setup,
-            contract,
-            dailyRiskState);
+        var calculation = _calculator.Calculate(_limits, setup, contract, dailyRiskState);
 
-        var resultRejectReason = _resultValidator.Validate(
-            _limits,
-            dailyRiskState,
-            calculation);
+        var resultRejectReason = _resultValidator.Validate(_limits, dailyRiskState, calculation);
 
         if (resultRejectReason != RiskRejectReason.None)
         {
-            return _tradePlanFactory.Rejected(
-                setup,
-                _limits,
-                dailyRiskState,
-                resultRejectReason,
-                calculation);
+            return _tradePlanFactory.Rejected(setup, _limits, dailyRiskState, resultRejectReason, calculation);
         }
 
-        return _tradePlanFactory.Accepted(
-            setup,
-            _limits,
-            calculation);
+        return _tradePlanFactory.Accepted(setup, _limits, calculation);
     }
 }

@@ -15,11 +15,7 @@ public sealed record DailyRiskState
     /// <param name="dailyTradeCount">当日已经执行的交易次数。</param>
     /// <param name="consecutiveLosses">当前连续亏损次数。</param>
     /// <param name="currentMarginUsed">当前已经占用的保证金金额。</param>
-    public DailyRiskState(
-        double realizedPnlToday,
-        int dailyTradeCount,
-        int consecutiveLosses,
-        double currentMarginUsed)
+    public DailyRiskState(double realizedPnlToday, int dailyTradeCount, int consecutiveLosses, double currentMarginUsed)
     {
         RealizedPnlToday = realizedPnlToday;
         DailyTradeCount = Ensure.NonNegative(dailyTradeCount, "当日交易次数不能小于 0。");

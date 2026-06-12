@@ -14,9 +14,7 @@ internal sealed class TradeRiskInputValidator
     /// <param name="setup">行情结构阶段生成的交易设想。</param>
     /// <param name="contract">合约风险计算资料。</param>
     /// <returns>拒绝原因；通过时返回 None。</returns>
-    public RiskRejectReason Validate(
-        TradeSetup setup,
-        ContractRiskProfile contract)
+    public RiskRejectReason Validate(TradeSetup setup, ContractRiskProfile contract)
     {
         var setupRejectReason = ValidateTradeSetup(setup);
         if (setupRejectReason != RiskRejectReason.None)
@@ -58,9 +56,7 @@ internal sealed class TradeRiskInputValidator
     /// <summary>
     /// 检查 ContractRiskProfile 是否具备最小可计算性。
     /// </summary>
-    private static RiskRejectReason ValidateContractRiskProfile(
-        TradeSetup setup,
-        ContractRiskProfile contract)
+    private static RiskRejectReason ValidateContractRiskProfile(TradeSetup setup, ContractRiskProfile contract)
     {
         if (string.IsNullOrWhiteSpace(contract.Symbol))
         {

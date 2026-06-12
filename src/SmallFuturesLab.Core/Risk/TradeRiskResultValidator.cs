@@ -15,10 +15,7 @@ internal sealed class TradeRiskResultValidator
     /// <param name="dailyRiskState">当日风险状态。</param>
     /// <param name="calculation">风险计算中间结果。</param>
     /// <returns>拒绝原因；通过时返回 None。</returns>
-    public RiskRejectReason Validate(
-        AccountRiskLimits limits,
-        DailyRiskState dailyRiskState,
-        TradeRiskCalculation calculation)
+    public RiskRejectReason Validate(AccountRiskLimits limits, DailyRiskState dailyRiskState, TradeRiskCalculation calculation)
     {
         var dailyRejectReason = ValidateDailyRisk(limits, dailyRiskState);
         if (dailyRejectReason != RiskRejectReason.None)
@@ -47,9 +44,7 @@ internal sealed class TradeRiskResultValidator
     /// <summary>
     /// 检查当天是否触发停止继续评估新计划的条件。
     /// </summary>
-    private static RiskRejectReason ValidateDailyRisk(
-        AccountRiskLimits limits,
-        DailyRiskState dailyRiskState)
+    private static RiskRejectReason ValidateDailyRisk(AccountRiskLimits limits, DailyRiskState dailyRiskState)
     {
         if (dailyRiskState.RealizedLossToday >= limits.DailyLossLimit)
         {

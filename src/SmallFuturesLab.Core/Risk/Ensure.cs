@@ -13,10 +13,7 @@ internal static class Ensure
     /// <summary>
     /// 确保数值大于 0。
     /// </summary>
-    public static double Positive(
-        double value,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    public static double Positive(double value, string message, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
         if (value <= 0)
         {
@@ -29,10 +26,7 @@ internal static class Ensure
     /// <summary>
     /// 确保数值不小于 0。
     /// </summary>
-    public static double NonNegative(
-        double value,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    public static double NonNegative(double value, string message, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
         if (value < 0)
         {
@@ -45,10 +39,7 @@ internal static class Ensure
     /// <summary>
     /// 确保整数不小于 0。
     /// </summary>
-    public static int NonNegative(
-        int value,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    public static int NonNegative(int value, string message, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
         if (value < 0)
         {
@@ -61,10 +52,7 @@ internal static class Ensure
     /// <summary>
     /// 确保数值是 (0, 1] 范围内的比例。
     /// </summary>
-    public static double Ratio(
-        double value,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    public static double Ratio(double value, string message, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
         if (value <= 0 || value > 1)
         {
@@ -77,11 +65,7 @@ internal static class Ensure
     /// <summary>
     /// 确保整数不小于指定下限。
     /// </summary>
-    public static int AtLeast(
-        int value,
-        int minimum,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    public static int AtLeast(int value, int minimum, string message, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
         if (value < minimum)
         {
