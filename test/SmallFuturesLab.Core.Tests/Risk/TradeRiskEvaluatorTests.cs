@@ -2,14 +2,14 @@ using SmallFuturesLab.Core.Risk;
 
 namespace SmallFuturesLab.Core.Tests.Risk;
 
-public sealed class RiskConstraintTests
+public sealed class TradeRiskEvaluatorTests
 {
     [Fact]
     public void BuildsAcceptedLongTradePlanFromDocumentExample()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             new TradeSetup(
                 symbol: "MA",
                 direction: TradeDirection.Long,
@@ -43,9 +43,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void BuildsShortTargetPriceBelowEntry()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             new TradeSetup(
                 symbol: "MA",
                 direction: TradeDirection.Short,
@@ -63,9 +63,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenDailyLossLimitReached()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
                 realizedPnlToday: -500,
@@ -80,9 +80,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenDailyProfitLockReached()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
                 realizedPnlToday: 500,
@@ -97,9 +97,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenMaxDailyTradesReached()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
                 realizedPnlToday: 0,
@@ -114,9 +114,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenConsecutiveLossLimitReached()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
                 realizedPnlToday: 0,
@@ -131,9 +131,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenAccountRCanNotCoverOneLotTradeR()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             new TradeSetup(
                 symbol: "MA",
                 direction: TradeDirection.Long,
@@ -152,9 +152,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenCostInRExceedsLimit()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             new TradeSetup(
                 symbol: "MA",
                 direction: TradeDirection.Long,
@@ -173,9 +173,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsWhenMarginAfterOpenExceedsLimit()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
             new DailyRiskState(
                 realizedPnlToday: 0,
@@ -191,9 +191,9 @@ public sealed class RiskConstraintTests
     [Fact]
     public void RejectsInvalidTradeSetupWithoutThrowing()
     {
-        var constraint = new RiskConstraint(DefaultLimits());
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
 
-        var plan = constraint.Evaluate(
+        var plan = evaluator.Evaluate(
             new TradeSetup(
                 symbol: "MA",
                 direction: TradeDirection.Long,

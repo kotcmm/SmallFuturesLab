@@ -1,20 +1,20 @@
 namespace SmallFuturesLab.Core.Risk;
 
 /// <summary>
-/// 风险约束验算器。
+/// 单笔交易风险验算器。
 ///
 /// 职责：把 TradeSetup 转换成 TradePlan。
 /// 不负责行情判断，不负责账户状态持久化，只做纯计算。
 /// </summary>
-public sealed class RiskConstraint
+public sealed class TradeRiskEvaluator
 {
     private readonly AccountRiskLimits _limits;
 
     /// <summary>
-    /// 创建风险约束验算器。
+    /// 创建单笔交易风险验算器。
     /// </summary>
     /// <param name="limits">账户风险边界。</param>
-    public RiskConstraint(AccountRiskLimits limits)
+    public TradeRiskEvaluator(AccountRiskLimits limits)
     {
         _limits = limits ?? throw new ArgumentNullException(nameof(limits));
     }
@@ -31,7 +31,7 @@ public sealed class RiskConstraint
     /// </summary>
     /// <param name="setup">行情结构阶段生成的交易设想。</param>
     /// <param name="dailyRiskState">当日风险状态。</param>
-    /// <returns>风险约束验算后的交易计划。</returns>
+    /// <returns>风险验算后的交易计划。</returns>
     public TradePlan Evaluate(TradeSetup setup, DailyRiskState dailyRiskState)
     {
         ArgumentNullException.ThrowIfNull(setup);
