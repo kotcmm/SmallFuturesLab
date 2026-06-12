@@ -43,6 +43,22 @@ internal static class Ensure
     }
 
     /// <summary>
+    /// 确保整数不小于 0。
+    /// </summary>
+    public static int NonNegative(
+        int value,
+        string message,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    {
+        if (value < 0)
+        {
+            throw new ArgumentOutOfRangeException(paramName, value, message);
+        }
+
+        return value;
+    }
+
+    /// <summary>
     /// 确保数值是 (0, 1] 范围内的比例。
     /// </summary>
     public static double Ratio(
