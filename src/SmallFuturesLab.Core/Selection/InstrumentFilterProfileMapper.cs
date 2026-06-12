@@ -5,6 +5,11 @@ namespace SmallFuturesLab.Core.Selection;
 /// </summary>
 public sealed class InstrumentFilterProfileMapper
 {
+    /// <summary>
+    /// 转换单个合约原始资料。
+    /// </summary>
+    /// <param name="raw">收集器返回的原始合约资料。</param>
+    /// <returns>品种过滤使用的统一内部对象。</returns>
     public InstrumentFilterProfile Map(InstrumentRawInfo raw)
     {
         ArgumentNullException.ThrowIfNull(raw);
