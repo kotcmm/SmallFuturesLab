@@ -14,7 +14,9 @@ public sealed class TradeRiskEvaluatorTests
                 symbol: "MA",
                 direction: TradeDirection.Long,
                 entryPrice: 3000,
-                stopPrice: 2980,
+                stopPrice: 2980),
+            new ContractRiskProfile(
+                symbol: "MA",
                 multiplier: 10,
                 estimatedRoundTripCostPerLot: 20,
                 oneLotMargin: 3000),
@@ -50,10 +52,8 @@ public sealed class TradeRiskEvaluatorTests
                 symbol: "MA",
                 direction: TradeDirection.Short,
                 entryPrice: 2980,
-                stopPrice: 3000,
-                multiplier: 10,
-                estimatedRoundTripCostPerLot: 20,
-                oneLotMargin: 3000),
+                stopPrice: 3000),
+            DefaultContractRiskProfile(),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Accepted, plan.Status);
@@ -67,6 +67,7 @@ public sealed class TradeRiskEvaluatorTests
 
         var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
+            DefaultContractRiskProfile(),
             new DailyRiskState(
                 realizedPnlToday: -500,
                 dailyTradeCount: 0,
@@ -84,6 +85,7 @@ public sealed class TradeRiskEvaluatorTests
 
         var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
+            DefaultContractRiskProfile(),
             new DailyRiskState(
                 realizedPnlToday: 500,
                 dailyTradeCount: 0,
@@ -101,6 +103,7 @@ public sealed class TradeRiskEvaluatorTests
 
         var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
+            DefaultContractRiskProfile(),
             new DailyRiskState(
                 realizedPnlToday: 0,
                 dailyTradeCount: 3,
@@ -118,6 +121,7 @@ public sealed class TradeRiskEvaluatorTests
 
         var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
+            DefaultContractRiskProfile(),
             new DailyRiskState(
                 realizedPnlToday: 0,
                 dailyTradeCount: 0,
@@ -138,10 +142,8 @@ public sealed class TradeRiskEvaluatorTests
                 symbol: "MA",
                 direction: TradeDirection.Long,
                 entryPrice: 3000,
-                stopPrice: 2900,
-                multiplier: 10,
-                estimatedRoundTripCostPerLot: 20,
-                oneLotMargin: 3000),
+                stopPrice: 2900),
+            DefaultContractRiskProfile(),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
@@ -159,7 +161,9 @@ public sealed class TradeRiskEvaluatorTests
                 symbol: "MA",
                 direction: TradeDirection.Long,
                 entryPrice: 100,
-                stopPrice: 99,
+                stopPrice: 99),
+            new ContractRiskProfile(
+                symbol: "MA",
                 multiplier: 10,
                 estimatedRoundTripCostPerLot: 10,
                 oneLotMargin: 1000),
@@ -177,6 +181,7 @@ public sealed class TradeRiskEvaluatorTests
 
         var plan = evaluator.Evaluate(
             DefaultTradeSetup(),
+            DefaultContractRiskProfile(),
             new DailyRiskState(
                 realizedPnlToday: 0,
                 dailyTradeCount: 0,
@@ -198,16 +203,52 @@ public sealed class TradeRiskEvaluatorTests
                 symbol: "MA",
                 direction: TradeDirection.Long,
                 entryPrice: 3000,
-                stopPrice: 2980,
-                multiplier: 0,
-                estimatedRoundTripCostPerLot: 20,
-                oneLotMargin: 3000),
+                stopPrice: 3000),
+            DefaultContractRiskProfile(),
             DefaultDailyState());
 
         Assert.Equal(TradePlanStatus.Rejected, plan.Status);
         Assert.Equal(RiskRejectReason.InvalidTradeSetup, plan.RejectReason);
         Assert.Equal(0, plan.AllowedLots);
         Assert.Equal(0, plan.TargetPrice);
+    }
+
+    [Fact]
+    public void RejectsInvalidContractRiskProfileWithoutThrowing()
+    {
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
+
+        var plan = evaluator.Evaluate(
+            DefaultTradeSetup(),
+            new ContractRiskProfile(
+                symbol: "MA",
+                multiplier: 0,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
+            DefaultDailyState());
+
+        Assert.Equal(TradePlanStatus.Rejected, plan.Status);
+        Assert.Equal(RiskRejectReason.InvalidContractRiskProfile, plan.RejectReason);
+        Assert.Equal(0, plan.AllowedLots);
+        Assert.Equal(0, plan.TargetPrice);
+    }
+
+    [Fact]
+    public void RejectsWhenTradeSetupAndContractSymbolMismatch()
+    {
+        var evaluator = new TradeRiskEvaluator(DefaultLimits());
+
+        var plan = evaluator.Evaluate(
+            DefaultTradeSetup(),
+            new ContractRiskProfile(
+                symbol: "RB",
+                multiplier: 10,
+                estimatedRoundTripCostPerLot: 20,
+                oneLotMargin: 3000),
+            DefaultDailyState());
+
+        Assert.Equal(TradePlanStatus.Rejected, plan.Status);
+        Assert.Equal(RiskRejectReason.InvalidContractRiskProfile, plan.RejectReason);
     }
 
     private static AccountRiskLimits DefaultLimits()
@@ -239,7 +280,13 @@ public sealed class TradeRiskEvaluatorTests
             symbol: "MA",
             direction: TradeDirection.Long,
             entryPrice: 3000,
-            stopPrice: 2980,
+            stopPrice: 2980);
+    }
+
+    private static ContractRiskProfile DefaultContractRiskProfile()
+    {
+        return new ContractRiskProfile(
+            symbol: "MA",
             multiplier: 10,
             estimatedRoundTripCostPerLot: 20,
             oneLotMargin: 3000);

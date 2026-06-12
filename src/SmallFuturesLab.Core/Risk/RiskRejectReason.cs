@@ -13,9 +13,14 @@ public enum RiskRejectReason
     None,
 
     /// <summary>
-    /// TradeSetup 本身无效，例如价格无效、入场价等于止损价、合约乘数无效。
+    /// TradeSetup 本身无效，例如品种代码无效、方向无效、价格无效、入场价等于止损价。
     /// </summary>
     InvalidTradeSetup,
+
+    /// <summary>
+    /// ContractRiskProfile 本身无效，例如品种代码无效、合约乘数无效、成本或保证金无效。
+    /// </summary>
+    InvalidContractRiskProfile,
 
     /// <summary>
     /// 当日已实现亏损达到每日亏损上限。
