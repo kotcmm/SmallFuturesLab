@@ -3,8 +3,11 @@ namespace SmallFuturesLab.Core.Risk;
 /// <summary>
 /// 交易结构输入。
 ///
-/// TradeSetup 来自行情结构模块。它只描述“如果要做这笔交易，在哪里进场，在哪里证明错了”。
-/// 目标价、手数、TradeR 和是否允许交易，都由风险模块推导。
+/// TradeSetup 来自行情结构模块。
+/// 它只描述“如果要做这笔交易，在哪里进场，在哪里证明错了”。
+///
+/// TradeSetup 不是交易计划。
+/// 它不包含手数、目标价、TradeR、保证金占用，也不决定是否允许交易。
 /// </summary>
 public sealed record TradeSetup
 {
@@ -15,25 +18,16 @@ public sealed record TradeSetup
     /// <param name="direction">交易方向。</param>
     /// <param name="entryPrice">计划入场价。</param>
     /// <param name="stopPrice">计划止损价。</param>
-    /// <param name="multiplier">合约乘数。</param>
-    /// <param name="estimatedRoundTripCostPerLot">交易前预估单手开平总成本。</param>
-    /// <param name="oneLotMargin">单手保证金。</param>
     public TradeSetup(
         string symbol,
         TradeDirection direction,
         double entryPrice,
-        double stopPrice,
-        double multiplier,
-        double estimatedRoundTripCostPerLot,
-        double oneLotMargin)
+        double stopPrice)
     {
         Symbol = symbol;
         Direction = direction;
         EntryPrice = entryPrice;
         StopPrice = stopPrice;
-        Multiplier = multiplier;
-        EstimatedRoundTripCostPerLot = estimatedRoundTripCostPerLot;
-        OneLotMargin = oneLotMargin;
     }
 
     /// <summary>
@@ -55,40 +49,4 @@ public sealed record TradeSetup
     /// 计划止损价。
     /// </summary>
     public double StopPrice { get; init; }
-
-    /// <summary>
-    /// 合约乘数。
-    /// </summary>
-    public double Multiplier { get; init; }
-
-    /// <summary>
-    /// 交易前预估单手开平总成本。
-    /// </summary>
-    public double EstimatedRoundTripCostPerLot { get; init; }
-
-    /// <summary>
-    /// 单手保证金。
-    /// </summary>
-    public double OneLotMargin { get; init; }
-
-    /// <summary>
-    /// SetupPriceRisk = |EntryPrice - StopPrice|。
-    ///
-    /// 含义：入场价到止损价之间的价格距离。
-    /// </summary>
-    public double SetupPriceRisk => Math.Abs(EntryPrice - StopPrice);
-
-    /// <summary>
-    /// OneLotPriceRisk = SetupPriceRisk × Multiplier。
-    ///
-    /// 含义：一手合约从入场价亏到止损价时，对应的价格风险金额，不含成本。
-    /// </summary>
-    public double OneLotPriceRisk => SetupPriceRisk * Multiplier;
-
-    /// <summary>
-    /// OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot。
-    ///
-    /// 含义：一手计划风险，包含价格风险和交易前预估成本。
-    /// </summary>
-    public double OneLotTradeR => OneLotPriceRisk + EstimatedRoundTripCostPerLot;
 }
