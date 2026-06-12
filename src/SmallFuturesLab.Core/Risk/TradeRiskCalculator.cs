@@ -21,39 +21,16 @@ internal sealed class TradeRiskCalculator
         ContractRiskProfile contract,
         DailyRiskState dailyRiskState)
     {
-        // SetupPriceRisk = |EntryPrice - StopPrice|。
-        var setupPriceRisk = Math.Abs(setup.EntryPrice - setup.StopPrice);
-
-        // OneLotPriceRisk = SetupPriceRisk × Multiplier。
-        var oneLotPriceRisk = setupPriceRisk * contract.Multiplier;
-
-        // OneLotTradeR = OneLotPriceRisk + EstimatedRoundTripCostPerLot。
-        var oneLotTradeR = oneLotPriceRisk + contract.EstimatedRoundTripCostPerLot;
-
-        // AllowedLots = floor(AccountR / OneLotTradeR)。
-        var allowedLots = (int)Math.Floor(limits.AccountR / oneLotTradeR);
-
-        // TradeR = OneLotTradeR × AllowedLots。
-        var tradeR = oneLotTradeR * allowedLots;
-
-        // CostInR = 本笔交易前预估总成本 / TradeR。
-        var costInR = tradeR > 0
-            ? contract.EstimatedRoundTripCostPerLot * allowedLots / tradeR
-            : 0;
-
-        // RequiredRewardAmount = OneLotTradeR × MinPlannedRewardR。
-        var requiredRewardAmount = oneLotTradeR * limits.MinPlannedRewardR;
-
-        // TargetPriceDistance = RequiredRewardAmount / Multiplier。
-        var targetPriceDistance = requiredRewardAmount / contract.Multiplier;
-
-        // 做多目标价在入场价上方；做空目标价在入场价下方。
-        var targetPrice = setup.Direction == TradeDirection.Long
-            ? setup.EntryPrice + targetPriceDistance
-            : setup.EntryPrice - targetPriceDistance;
-
-        // MarginAfterOpen = CurrentMarginUsed + OneLotMargin × AllowedLots。
-        var marginAfterOpen = dailyRiskState.CurrentMarginUsed + contract.OneLotMargin * allowedLots;
+        var setupPriceRisk = CalculateSetupPriceRisk(setup);
+        var oneLotPriceRisk = CalculateOneLotPriceRisk(setupPriceRisk, contract);
+        var oneLotTradeR = CalculateOneLotTradeR(oneLotPriceRisk, contract);
+        var allowedLots = CalculateAllowedLots(limits, oneLotTradeR);
+        var tradeR = CalculateTradeR(oneLotTradeR, allowedLots);
+        var costInR = CalculateCostInR(contract, allowedLots, tradeR);
+        var requiredRewardAmount = CalculateRequiredRewardAmount(limits, oneLotTradeR);
+        var targetPriceDistance = CalculateTargetPriceDistance(requiredRewardAmount, contract);
+        var targetPrice = CalculateTargetPrice(setup, targetPriceDistance);
+        var marginAfterOpen = CalculateMarginAfterOpen(contract, dailyRiskState, allowedLots);
 
         return new TradeRiskCalculation(
             setupPriceRisk: setupPriceRisk,
@@ -66,5 +43,82 @@ internal sealed class TradeRiskCalculator
             targetPriceDistance: targetPriceDistance,
             targetPrice: targetPrice,
             marginAfterOpen: marginAfterOpen);
+    }
+
+    private static double CalculateSetupPriceRisk(TradeSetup setup)
+    {
+        return Math.Abs(setup.EntryPrice - setup.StopPrice);
+    }
+
+    private static double CalculateOneLotPriceRisk(
+        double setupPriceRisk,
+        ContractRiskProfile contract)
+    {
+        return setupPriceRisk * contract.Multiplier;
+    }
+
+    private static double CalculateOneLotTradeR(
+        double oneLotPriceRisk,
+        ContractRiskProfile contract)
+    {
+        return oneLotPriceRisk + contract.EstimatedRoundTripCostPerLot;
+    }
+
+    private static int CalculateAllowedLots(
+        AccountRiskLimits limits,
+        double oneLotTradeR)
+    {
+        return (int)Math.Floor(limits.AccountR / oneLotTradeR);
+    }
+
+    private static double CalculateTradeR(
+        double oneLotTradeR,
+        int allowedLots)
+    {
+        return oneLotTradeR * allowedLots;
+    }
+
+    private static double CalculateCostInR(
+        ContractRiskProfile contract,
+        int allowedLots,
+        double tradeR)
+    {
+        if (tradeR <= 0)
+        {
+            return 0;
+        }
+
+        return contract.EstimatedRoundTripCostPerLot * allowedLots / tradeR;
+    }
+
+    private static double CalculateRequiredRewardAmount(
+        AccountRiskLimits limits,
+        double oneLotTradeR)
+    {
+        return oneLotTradeR * limits.MinPlannedRewardR;
+    }
+
+    private static double CalculateTargetPriceDistance(
+        double requiredRewardAmount,
+        ContractRiskProfile contract)
+    {
+        return requiredRewardAmount / contract.Multiplier;
+    }
+
+    private static double CalculateTargetPrice(
+        TradeSetup setup,
+        double targetPriceDistance)
+    {
+        return setup.Direction == TradeDirection.Long
+            ? setup.EntryPrice + targetPriceDistance
+            : setup.EntryPrice - targetPriceDistance;
+    }
+
+    private static double CalculateMarginAfterOpen(
+        ContractRiskProfile contract,
+        DailyRiskState dailyRiskState,
+        int allowedLots)
+    {
+        return dailyRiskState.CurrentMarginUsed + contract.OneLotMargin * allowedLots;
     }
 }
