@@ -21,25 +21,10 @@ public sealed record DailyRiskState
         int consecutiveLosses,
         double currentMarginUsed)
     {
-        if (dailyTradeCount < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(dailyTradeCount), "当日交易次数不能小于 0。");
-        }
-
-        if (consecutiveLosses < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(consecutiveLosses), "连续亏损次数不能小于 0。");
-        }
-
-        if (currentMarginUsed < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(currentMarginUsed), "当前保证金占用不能小于 0。");
-        }
-
         RealizedPnlToday = realizedPnlToday;
-        DailyTradeCount = dailyTradeCount;
-        ConsecutiveLosses = consecutiveLosses;
-        CurrentMarginUsed = currentMarginUsed;
+        DailyTradeCount = Ensure.NonNegative(dailyTradeCount, "当日交易次数不能小于 0。");
+        ConsecutiveLosses = Ensure.NonNegative(consecutiveLosses, "连续亏损次数不能小于 0。");
+        CurrentMarginUsed = Ensure.NonNegative(currentMarginUsed, "当前保证金占用不能小于 0。");
     }
 
     /// <summary>
