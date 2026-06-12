@@ -9,6 +9,13 @@ namespace SmallFuturesLab.Core.Risk;
 /// </summary>
 public sealed class InstrumentRiskEvaluator
 {
+    /// <summary>
+    /// 判断单个品种是否适合进入候选池。
+    /// </summary>
+    /// <param name="instrument">品种过滤使用的统一内部对象。</param>
+    /// <param name="accountRiskLimits">账户风险边界。</param>
+    /// <param name="selectionLimits">品种入选边界。</param>
+    /// <returns>品种是否适合入选的判断结果。</returns>
     public InstrumentRiskDecision Evaluate(
         InstrumentFilterProfile instrument,
         AccountRiskLimits accountRiskLimits,
